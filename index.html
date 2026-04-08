@@ -16,7 +16,7 @@
     />
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
-  <body class="bg-body-tertiary app-body">
+  <body class="app-body app-page-bg">
     <a class="visually-hidden-focusable position-absolute top-0 start-0 p-2" href="#loginMain"
       >Skip to content</a
     >
@@ -25,10 +25,10 @@
       <div class="container py-5" id="loginMain">
         <div class="row justify-content-center">
           <div class="col-md-10 col-lg-7 col-xl-5">
-            <div class="card shadow border-0">
+            <div class="card shadow border-0 login-card-accent">
               <div class="card-body p-4 p-md-5">
                 <div class="text-center mb-4">
-                  <span class="h4 fw-semibold"
+                  <span class="h4 fw-semibold text-brand"
                     ><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>HireMatch</span
                   >
                   <p class="text-secondary small mb-0">Sign in to continue</p>
@@ -71,7 +71,7 @@
                     <button type="button" class="btn btn-outline-primary btn-sm" id="quickLoginEmployee">
                       <i class="bi bi-briefcase me-1" aria-hidden="true"></i>Log in as employee
                     </button>
-                    <button type="button" class="btn btn-outline-dark btn-sm" id="quickLoginAdmin">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="quickLoginAdmin">
                       <i class="bi bi-shield-lock me-1" aria-hidden="true"></i>Log in as admin
                     </button>
                   </div>
@@ -87,7 +87,7 @@
     <a class="visually-hidden-focusable position-absolute top-0 start-0 p-2" href="#main"
       >Skip to application</a
     >
-    <header class="app-topbar border-bottom bg-dark text-white">
+    <header class="app-shell text-white">
       <div class="container py-2 d-flex flex-wrap align-items-center gap-2 gap-md-3">
         <a class="navbar-brand text-white mb-0 text-decoration-none fw-semibold" href="#main">
           <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>HireMatch
@@ -118,7 +118,7 @@
         </div>
       </div>
 
-      <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-top border-secondary py-0">
+      <nav class="navbar navbar-expand-lg navbar-dark app-shell-nav py-0">
         <div class="container">
           <button
             class="navbar-toggler my-2"
@@ -315,7 +315,7 @@
           <h1 class="h4 mb-1" id="pageTitle">Dashboard</h1>
           <p class="text-secondary small mb-0" id="pageSubtitle">Environment: <strong>Demo</strong> · Region US-East · Build 2026.04.08</p>
         </div>
-        <p id="roleAccessBanner" class="alert alert-secondary py-2 px-3 small mb-0 max-role-banner" role="status"></p>
+        <p id="roleAccessBanner" class="alert alert-light border border-teal-tint py-2 px-3 small mb-0 max-role-banner" role="status"></p>
       </div>
 
       <div class="tab-content">
