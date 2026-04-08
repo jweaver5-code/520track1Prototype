@@ -189,7 +189,7 @@ let appListenersAttached = false;
 
 const ROLE_BANNER = {
   seeker:
-    "Signed in as Seeker: job matches and explainability. Audit log is not available for your role.",
+    "Signed in as Seeker: Job postings (ranked for you), Profile, and Explainability. No directory, fairness console, about page, or audit log.",
   recruiter:
     "Signed in as Recruiter: requisitions and ranking. Audit log is restricted to Auditor and Admin.",
   auditor:
@@ -200,6 +200,8 @@ const ROLE_BANNER = {
 
 const TAB_LABELS = {
   "tab-dashboard": "Dashboard",
+  "tab-jobs": "Job postings",
+  "tab-profile": "Profile",
   "tab-directory": "Directory",
   "tab-decisions": "Decisions",
   "tab-audit": "Audit log",

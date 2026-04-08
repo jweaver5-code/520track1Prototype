@@ -151,10 +151,38 @@
                   <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Dashboard
                 </button>
               </li>
+              <li class="nav-item" role="presentation" data-rbac-allow="seeker">
+                <button
+                  class="nav-link px-3"
+                  id="tab-jobs"
+                  data-bs-toggle="tab"
+                  data-bs-target="#pane-jobs"
+                  type="button"
+                  role="tab"
+                  aria-controls="pane-jobs"
+                  aria-selected="false"
+                >
+                  <i class="bi bi-briefcase me-1" aria-hidden="true"></i>Job postings
+                </button>
+              </li>
+              <li class="nav-item" role="presentation" data-rbac-allow="seeker">
+                <button
+                  class="nav-link px-3"
+                  id="tab-profile"
+                  data-bs-toggle="tab"
+                  data-bs-target="#pane-profile"
+                  type="button"
+                  role="tab"
+                  aria-controls="pane-profile"
+                  aria-selected="false"
+                >
+                  <i class="bi bi-person-vcard me-1" aria-hidden="true"></i>Profile
+                </button>
+              </li>
               <li
                 class="nav-item"
                 role="presentation"
-                data-rbac-allow="seeker recruiter auditor admin"
+                data-rbac-allow="recruiter auditor admin"
               >
                 <button
                   class="nav-link px-3"
@@ -204,7 +232,7 @@
               <li
                 class="nav-item"
                 role="presentation"
-                data-rbac-allow="seeker recruiter auditor admin"
+                data-rbac-allow="recruiter auditor admin"
               >
                 <button
                   class="nav-link px-3"
@@ -240,7 +268,7 @@
               <li
                 class="nav-item"
                 role="presentation"
-                data-rbac-allow="seeker recruiter auditor admin"
+                data-rbac-allow="recruiter auditor admin"
               >
                 <button
                   class="nav-link px-3"
@@ -313,54 +341,9 @@
                 </div>
               </div>
             </div>
-            <div class="card shadow-sm mb-3">
-              <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                <span class="fw-semibold">Recommended for you</span>
-                <span class="badge text-bg-light border">policy job-matching v2026.04</span>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-hover table-sm align-middle mb-0">
-                  <thead class="table-light">
-                    <tr>
-                      <th scope="col">Job</th>
-                      <th scope="col">Employer</th>
-                      <th scope="col">Location</th>
-                      <th scope="col" class="text-end">Match</th>
-                      <th scope="col">Decision ID</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Senior Backend Engineer</td>
-                      <td>Nimbus Analytics</td>
-                      <td>Remote · US</td>
-                      <td class="text-end"><span class="badge text-bg-success">0.91</span></td>
-                      <td><code class="small">dec-20260408-14a2</code></td>
-                    </tr>
-                    <tr>
-                      <td>Platform Engineer II</td>
-                      <td>Harbor Health Systems</td>
-                      <td>Chicago, IL</td>
-                      <td class="text-end"><span class="badge text-bg-primary">0.87</span></td>
-                      <td><code class="small">dec-20260408-14a3</code></td>
-                    </tr>
-                    <tr>
-                      <td>API Developer</td>
-                      <td>Copperlane Bank</td>
-                      <td>Remote · US</td>
-                      <td class="text-end"><span class="badge text-bg-primary">0.84</span></td>
-                      <td><code class="small">dec-20260408-14b1</code></td>
-                    </tr>
-                    <tr>
-                      <td>Staff Engineer — Data</td>
-                      <td>Northwind Labs</td>
-                      <td>Austin, TX</td>
-                      <td class="text-end"><span class="badge text-bg-secondary">0.78</span></td>
-                      <td><code class="small">dec-20260408-14c0</code></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div class="alert alert-light border mb-0 small">
+              <strong>Your ranked job feed</strong> lives on the <strong>Job postings</strong> tab — same
+              policy engine (job-matching v2026.04), sorted by match score for your profile.
             </div>
           </div>
 
@@ -489,6 +472,197 @@
 
         <section
           class="tab-pane fade"
+          id="pane-jobs"
+          role="tabpanel"
+          aria-labelledby="tab-jobs"
+          tabindex="0"
+        >
+          <div class="card shadow-sm mb-3">
+            <div class="card-header bg-white py-3">
+              <h2 class="h5 mb-1">Ranked for you</h2>
+              <p class="text-secondary small mb-0">
+                Order and scores reflect your saved skills, location preferences, and recent activity.
+                Policy: <code>job-matching v2026.04</code>
+              </p>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Company</th>
+                    <th scope="col">Location</th>
+                    <th scope="col" class="text-end">Comp (est.)</th>
+                    <th scope="col" class="text-end">Match</th>
+                    <th scope="col">Why ranked</th>
+                    <th scope="col">Decision ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Senior Backend Engineer</td>
+                    <td>Nimbus Analytics</td>
+                    <td>Remote · US</td>
+                    <td class="text-end">$165k–$195k</td>
+                    <td class="text-end"><span class="badge text-bg-success">0.91</span></td>
+                    <td class="small">Python, REST, AWS · Remote match · Posted 2d ago</td>
+                    <td><code class="small">dec-20260408-14a2</code></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Platform Engineer II</td>
+                    <td>Harbor Health Systems</td>
+                    <td>Chicago, IL</td>
+                    <td class="text-end">$140k–$170k</td>
+                    <td class="text-end"><span class="badge text-bg-primary">0.87</span></td>
+                    <td class="small">APIs, Kubernetes · Skills gap: minor</td>
+                    <td><code class="small">dec-20260408-14a3</code></td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>API Developer</td>
+                    <td>Copperlane Bank</td>
+                    <td>Remote · US</td>
+                    <td class="text-end">$130k–$155k</td>
+                    <td class="text-end"><span class="badge text-bg-primary">0.84</span></td>
+                    <td class="small">Java &amp; Spring · Regulatory domain fit</td>
+                    <td><code class="small">dec-20260408-14b1</code></td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>Staff Engineer — Data</td>
+                    <td>Northwind Labs</td>
+                    <td>Austin, TX</td>
+                    <td class="text-end">$175k–$210k</td>
+                    <td class="text-end"><span class="badge text-bg-secondary">0.78</span></td>
+                    <td class="small">Spark, streaming · Location: open to relocate</td>
+                    <td><code class="small">dec-20260408-14c0</code></td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>Software Engineer III</td>
+                    <td>Riverstone Retail</td>
+                    <td>Remote · US</td>
+                    <td class="text-end">$125k–$148k</td>
+                    <td class="text-end"><span class="badge text-bg-secondary">0.76</span></td>
+                    <td class="small">E-commerce scale · Team match culture index</td>
+                    <td><code class="small">dec-20260407-91e2</code></td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>Backend Engineer</td>
+                    <td>Skyline Mobility</td>
+                    <td>Denver, CO</td>
+                    <td class="text-end">$135k–$160k</td>
+                    <td class="text-end"><span class="badge text-bg-secondary">0.74</span></td>
+                    <td class="small">Go, gRPC · Commute filter relaxed</td>
+                    <td><code class="small">dec-20260407-88aa</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card-footer bg-white small text-secondary">
+              Apply actions are disabled in this demo. Production ties applications to audit events per
+              click.
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade"
+          id="pane-profile"
+          role="tabpanel"
+          aria-labelledby="tab-profile"
+          tabindex="0"
+        >
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                  <div
+                    class="rounded-circle bg-secondary-subtle d-inline-flex align-items-center justify-content-center mb-3 text-secondary"
+                    style="width: 7rem; height: 7rem"
+                  >
+                    <i class="bi bi-person-fill" style="font-size: 3rem" aria-hidden="true"></i>
+                  </div>
+                  <h2 class="h5 mb-0">Maya Chen</h2>
+                  <p class="text-secondary small mb-2">Software engineer · Job seeker</p>
+                  <p class="small mb-0">
+                    <i class="bi bi-geo-alt me-1" aria-hidden="true"></i>Austin, TX (open to remote)
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-8">
+              <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white py-2 fw-semibold">Contact &amp; work eligibility</div>
+                <div class="card-body">
+                  <dl class="row small mb-0">
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">maya.chen@example.com</dd>
+                    <dt class="col-sm-4">Phone</dt>
+                    <dd class="col-sm-8">(512) 555-0198</dd>
+                    <dt class="col-sm-4">Work authorization</dt>
+                    <dd class="col-sm-8">US citizen</dd>
+                    <dt class="col-sm-4">Notice period</dt>
+                    <dd class="col-sm-8">2 weeks</dd>
+                  </dl>
+                </div>
+              </div>
+              <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                  <span class="fw-semibold">Resume</span>
+                  <span class="badge text-bg-light border">PDF · v2026-04-01</span>
+                </div>
+                <div class="card-body small">
+                  <p class="mb-2 fw-semibold">Maya_Chen_Resume.pdf</p>
+                  <p class="text-secondary mb-2">
+                    Backend-focused engineer with 6+ years building APIs and data services. Recent work:
+                    payment pipelines, event-driven architecture, AWS.
+                  </p>
+                  <ul class="mb-0">
+                    <li>Nimbus Analytics — Senior Engineer (2022–present)</li>
+                    <li>Copperlane Bank — Engineer II (2018–2022)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card shadow-sm h-100">
+                <div class="card-header bg-white py-2 fw-semibold">Skills</div>
+                <div class="card-body">
+                  <p class="small mb-2">
+                    <span class="badge text-bg-primary me-1">Python</span>
+                    <span class="badge text-bg-primary me-1">REST APIs</span>
+                    <span class="badge text-bg-primary me-1">AWS</span>
+                    <span class="badge text-bg-secondary me-1">Kubernetes</span>
+                    <span class="badge text-bg-secondary me-1">PostgreSQL</span>
+                    <span class="badge text-bg-secondary me-1">Kafka</span>
+                  </p>
+                  <p class="small text-secondary mb-0">Last inferred from resume + assessments · 2026-04-01</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card shadow-sm h-100">
+                <div class="card-header bg-white py-2 fw-semibold">Education &amp; certifications</div>
+                <div class="card-body small">
+                  <p class="mb-1"><strong>BS Computer Science</strong> — UT Austin · 2017</p>
+                  <p class="mb-0">
+                    <strong>AWS Solutions Architect – Associate</strong> · Expires 2027
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade"
           id="pane-directory"
           role="tabpanel"
           aria-labelledby="tab-directory"
@@ -571,9 +745,6 @@
               </table>
             </div>
           </div>
-          <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="seeker">
-            You see public profile fields only; compensation and internal notes are hidden.
-          </p>
           <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="recruiter">
             Recruiter view is tenant-scoped; cross-tenant candidate pools require agency rules.
           </p>
@@ -589,7 +760,49 @@
           aria-labelledby="tab-decisions"
           tabindex="0"
         >
-          <div class="card shadow-sm mb-3">
+          <div class="card shadow-sm mb-3 data-role-hint" data-show-for="seeker">
+            <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Decisions affecting your matches</span>
+              <span class="small text-secondary">Account u-104 · synthetic</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col">Decision ID</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Subject</th>
+                    <th scope="col">Score / outcome</th>
+                    <th scope="col">Policy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>dec-20260408-14a2</code></td>
+                    <td>Job match</td>
+                    <td>feed · Nimbus · Sr Backend</td>
+                    <td>0.91</td>
+                    <td>job-matching v2026.04</td>
+                  </tr>
+                  <tr>
+                    <td><code>dec-20260408-14a3</code></td>
+                    <td>Job match</td>
+                    <td>feed · Harbor · Platform Eng II</td>
+                    <td>0.87</td>
+                    <td>job-matching v2026.04</td>
+                  </tr>
+                  <tr>
+                    <td><code>dec-20260407-22c1</code></td>
+                    <td>Eligibility</td>
+                    <td>Copperlane · work auth check</td>
+                    <td>pass</td>
+                    <td>eligibility v2025.11</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card shadow-sm mb-3 data-role-hint" data-show-for="recruiter auditor admin">
             <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
               <span class="fw-semibold">Recent automated decisions</span>
               <span class="small text-secondary">Last 48 hours · synthetic</span>
@@ -730,15 +943,6 @@
           aria-labelledby="tab-fairness"
           tabindex="0"
         >
-          <div class="card shadow-sm mb-3 data-role-hint" data-show-for="seeker">
-            <div class="card-body">
-              <h2 class="h6">Your fairness tools</h2>
-              <p class="small mb-0">
-                We monitor ranking and matching for disparate impact. You can request a human review of any
-                decision that affects you from <strong>Explainability</strong>.
-              </p>
-            </div>
-          </div>
           <div class="row g-3 data-role-hint" data-show-for="recruiter auditor admin">
             <div class="col-lg-6">
               <div class="card shadow-sm h-100">
