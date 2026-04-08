@@ -191,17 +191,19 @@ const ROLE_BANNER = {
   seeker:
     "Signed in as Seeker: Job postings (ranked for you), Profile, and Explainability. No directory, fairness console, about page, or audit log.",
   recruiter:
-    "Signed in as Recruiter: requisitions and ranking. Audit log is restricted to Auditor and Admin.",
+    "Signed in as Recruiter: Ranked talent (AI), Review requests from applicants, pipeline KPIs. No directory or About. Audit log: Auditor/Admin only.",
   auditor:
-    "Signed in as Auditor: full compliance navigation including Audit log.",
+    "Signed in as Auditor: Review requests, Directory, Audit log, Fairness, About. Ranked talent is recruiter-only.",
   admin:
-    "Signed in as Admin: full navigation including Audit log and exports.",
+    "Signed in as Admin: Ranked talent, Review requests, Directory, Audit log, About, and exports.",
 };
 
 const TAB_LABELS = {
   "tab-dashboard": "Dashboard",
   "tab-jobs": "Job postings",
   "tab-profile": "Profile",
+  "tab-ranked": "Ranked talent",
+  "tab-review-requests": "Review requests",
   "tab-directory": "Directory",
   "tab-decisions": "Decisions",
   "tab-audit": "Audit log",

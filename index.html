@@ -179,11 +179,35 @@
                   <i class="bi bi-person-vcard me-1" aria-hidden="true"></i>Profile
                 </button>
               </li>
-              <li
-                class="nav-item"
-                role="presentation"
-                data-rbac-allow="recruiter auditor admin"
-              >
+              <li class="nav-item" role="presentation" data-rbac-allow="recruiter admin">
+                <button
+                  class="nav-link px-3"
+                  id="tab-ranked"
+                  data-bs-toggle="tab"
+                  data-bs-target="#pane-ranked"
+                  type="button"
+                  role="tab"
+                  aria-controls="pane-ranked"
+                  aria-selected="false"
+                >
+                  <i class="bi bi-trophy me-1" aria-hidden="true"></i>Ranked talent
+                </button>
+              </li>
+              <li class="nav-item" role="presentation" data-rbac-allow="recruiter auditor admin">
+                <button
+                  class="nav-link px-3"
+                  id="tab-review-requests"
+                  data-bs-toggle="tab"
+                  data-bs-target="#pane-review-requests"
+                  type="button"
+                  role="tab"
+                  aria-controls="pane-review-requests"
+                  aria-selected="false"
+                >
+                  <i class="bi bi-inbox me-1" aria-hidden="true"></i>Review requests
+                </button>
+              </li>
+              <li class="nav-item" role="presentation" data-rbac-allow="auditor admin">
                 <button
                   class="nav-link px-3"
                   id="tab-directory"
@@ -265,11 +289,7 @@
                   <i class="bi bi-eye me-1" aria-hidden="true"></i>Explainability
                 </button>
               </li>
-              <li
-                class="nav-item"
-                role="presentation"
-                data-rbac-allow="recruiter auditor admin"
-              >
+              <li class="nav-item" role="presentation" data-rbac-allow="auditor admin">
                 <button
                   class="nav-link px-3"
                   id="tab-reference"
@@ -382,40 +402,10 @@
                 </div>
               </div>
             </div>
-            <div class="card shadow-sm mb-3">
-              <div class="card-header bg-white py-2 fw-semibold">Pipeline snapshot · tenant Acme Corp</div>
-              <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
-                  <thead class="table-light">
-                    <tr>
-                      <th scope="col">Requisition</th>
-                      <th scope="col">Stage</th>
-                      <th scope="col" class="text-end">In pipeline</th>
-                      <th scope="col">Owner</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>REQ-441 Senior Backend · Remote</td>
-                      <td><span class="badge text-bg-warning text-dark">Interview</span></td>
-                      <td class="text-end">11</td>
-                      <td>J. Lee</td>
-                    </tr>
-                    <tr>
-                      <td>REQ-502 Security Engineer</td>
-                      <td><span class="badge text-bg-info">Screen</span></td>
-                      <td class="text-end">9</td>
-                      <td>A. Okonkwo</td>
-                    </tr>
-                    <tr>
-                      <td>REQ-388 Data Platform Lead</td>
-                      <td><span class="badge text-bg-secondary">New</span></td>
-                      <td class="text-end">14</td>
-                      <td>J. Lee</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div class="alert alert-light border small mb-0">
+              <strong>AI-ranked candidates</strong> by requisition are on <strong>Ranked talent</strong>.
+              <strong>Applicant human-review</strong> tickets are on <strong>Review requests</strong>. Directory
+              and About are limited to Auditor/Admin in this demo.
             </div>
           </div>
 
@@ -663,6 +653,154 @@
 
         <section
           class="tab-pane fade"
+          id="pane-ranked"
+          role="tabpanel"
+          aria-labelledby="tab-ranked"
+          tabindex="0"
+        >
+          <div class="card shadow-sm mb-3">
+            <div class="card-header bg-white py-3">
+              <h2 class="h5 mb-1">Top candidates · AI ranking</h2>
+              <p class="text-secondary small mb-0">
+                Ordered by model fit for each open requisition (tenant Acme Corp). Policy
+                <code>candidate-rank v2026.03</code> · embeddings <code>text-embed-v2</code>
+              </p>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Candidate</th>
+                    <th scope="col">Requisition</th>
+                    <th scope="col" class="text-end">AI fit</th>
+                    <th scope="col">Signals</th>
+                    <th scope="col">Run ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Jordan Park</td>
+                    <td>REQ-441 · Sr Backend · Remote</td>
+                    <td class="text-end"><span class="badge text-bg-success">0.91</span></td>
+                    <td class="small">Python, distributed systems, fintech</td>
+                    <td><code class="small">rn-20260408-441a</code></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Samira Haddad</td>
+                    <td>REQ-441 · Sr Backend · Remote</td>
+                    <td class="text-end"><span class="badge text-bg-primary">0.88</span></td>
+                    <td class="small">APIs, gap: large-scale dist. systems</td>
+                    <td><code class="small">rn-20260408-441a</code></td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>Devon Ellis</td>
+                    <td>REQ-441 · Sr Backend · Remote</td>
+                    <td class="text-end"><span class="badge text-bg-primary">0.84</span></td>
+                    <td class="small">Strong API design, Node &amp; Go</td>
+                    <td><code class="small">rn-20260408-441a</code></td>
+                  </tr>
+                  <tr>
+                    <td>1</td>
+                    <td>Maya Chen</td>
+                    <td>REQ-502 · Security Engineer</td>
+                    <td class="text-end"><span class="badge text-bg-success">0.86</span></td>
+                    <td class="small">AppSec, threat modeling, AWS IAM</td>
+                    <td><code class="small">rn-20260408-502b</code></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Wei Zhang</td>
+                    <td>REQ-502 · Security Engineer</td>
+                    <td class="text-end"><span class="badge text-bg-primary">0.81</span></td>
+                    <td class="small">SOC2, encryption at rest</td>
+                    <td><code class="small">rn-20260408-502b</code></td>
+                  </tr>
+                  <tr>
+                    <td>1</td>
+                    <td>Olivia Grant</td>
+                    <td>REQ-388 · Data Platform Lead</td>
+                    <td class="text-end"><span class="badge text-bg-success">0.89</span></td>
+                    <td class="small">Spark, streaming, data mesh</td>
+                    <td><code class="small">rn-20260407-388c</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card-footer bg-white small text-secondary">
+              Rankings refresh on requisition edit or manual re-run. Demo data only.
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade"
+          id="pane-review-requests"
+          role="tabpanel"
+          aria-labelledby="tab-review-requests"
+          tabindex="0"
+        >
+          <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div>
+                <h2 class="h5 mb-0">Human review · applicant requests</h2>
+                <p class="text-secondary small mb-0">
+                  Submitted from Explainability when a candidate disputes or questions an automated decision.
+                </p>
+              </div>
+              <span class="badge text-bg-warning text-dark">3 open</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col">Ticket</th>
+                    <th scope="col">Applicant</th>
+                    <th scope="col">Decision ID</th>
+                    <th scope="col">Reason</th>
+                    <th scope="col">Submitted (UTC)</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>HR-1201</code></td>
+                    <td>Eli Navarro</td>
+                    <td><code>dec-20260407-88f1</code></td>
+                    <td>Seems incorrect / unfair</td>
+                    <td>2026-04-07 16:40</td>
+                    <td><span class="badge text-bg-warning text-dark">Pending</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>HR-1198</code></td>
+                    <td>Taylor Brooks</td>
+                    <td><code>dec-20260406-31c0</code></td>
+                    <td>Missing context in explanation</td>
+                    <td>2026-04-06 11:05</td>
+                    <td><span class="badge text-bg-info">In review</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>HR-1192</code></td>
+                    <td>Maya Chen</td>
+                    <td><code>dec-20260405-09aa</code></td>
+                    <td>Other</td>
+                    <td>2026-04-05 22:18</td>
+                    <td><span class="badge text-bg-secondary">Queued · compliance</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card-footer bg-white small text-secondary">
+              Assignments and resolution are logged to the audit trail (Auditor/Admin). Demo: actions disabled.
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade"
           id="pane-directory"
           role="tabpanel"
           aria-labelledby="tab-directory"
@@ -745,9 +883,6 @@
               </table>
             </div>
           </div>
-          <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="recruiter">
-            Recruiter view is tenant-scoped; cross-tenant candidate pools require agency rules.
-          </p>
           <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="auditor admin">
             Auditors may export this directory for access reviews (demo: export disabled).
           </p>
