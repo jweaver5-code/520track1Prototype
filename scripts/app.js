@@ -1,8 +1,8 @@
 /**
- * HireMatch governance demo — login session, RBAC (seekers never see audit log), synthetic data.
+ * HireMatchAI governance demo — login session, RBAC (seekers never see audit log), synthetic data.
  */
 
-const SESSION_KEY = "hirematch_demo_session_v1";
+const SESSION_KEY = "hirematchai_demo_session_v1";
 const DEMO_PASSWORD = "demo123";
 
 /** Role is authoritative here; session only stores verified email. */
