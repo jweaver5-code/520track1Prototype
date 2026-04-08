@@ -1,0 +1,21 @@
+/* Minimal overrides; prefer Bootstrap utilities in HTML */
+
+.navbar .nav-link {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link:focus {
+  color: #fff;
+}
+
+.navbar .nav-link.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+[data-role-hidden="true"] {
+  display: none !important;
+}

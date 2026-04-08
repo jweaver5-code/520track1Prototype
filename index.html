@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Track 1 — AI Hiring Match & Governance Prototype</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="./styles/main.css" />
+  </head>
+  <body class="bg-body-tertiary">
+    <a class="visually-hidden-focusable position-absolute top-0 start-0 p-2" href="#main"
+      >Skip to content</a
+    >
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
+      <div class="container">
+        <span class="navbar-brand">AI Match · Governance</span>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navMain"
+          aria-controls="navMain"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMain">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="tab-overview"
+                data-bs-toggle="tab"
+                data-bs-target="#pane-overview"
+                type="button"
+                role="tab"
+                aria-controls="pane-overview"
+                aria-selected="true"
+              >
+                Overview
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-personas"
+                data-bs-toggle="tab"
+                data-bs-target="#pane-personas"
+                type="button"
+                role="tab"
+                aria-controls="pane-personas"
+                aria-selected="false"
+              >
+                Personas &amp; roles
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-decisions"
+                data-bs-toggle="tab"
+                data-bs-target="#pane-decisions"
+                type="button"
+                role="tab"
+                aria-controls="pane-decisions"
+                aria-selected="false"
+              >
+                Automated decisions
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-audit"
+                data-bs-toggle="tab"
+                data-bs-target="#pane-audit"
+                type="button"
+                role="tab"
+                aria-controls="pane-audit"
+                aria-selected="false"
+              >
+                Audit log
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-fairness"
+                data-bs-toggle="tab"
+                data-bs-target="#pane-fairness"
+                type="button"
+                role="tab"
+                aria-controls="pane-fairness"
+                aria-selected="false"
+              >
+                Fairness
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-transparency"
+                data-bs-toggle="tab"
+                data-bs-target="#pane-transparency"
+                type="button"
+                role="tab"
+                aria-controls="pane-transparency"
+                aria-selected="false"
+              >
+                Transparency &amp; review
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-reference"
+                data-bs-toggle="tab"
+                data-bs-target="#pane-reference"
+                type="button"
+                role="tab"
+                aria-controls="pane-reference"
+                aria-selected="false"
+              >
+                AIS-spring reference
+              </button>
+            </li>
+          </ul>
+          <div class="d-flex align-items-center gap-2 text-white-50 small">
+            <label class="mb-0" for="roleSelect">Preview as</label>
+            <select id="roleSelect" class="form-select form-select-sm" aria-label="Preview as role">
+              <option value="admin">Admin</option>
+              <option value="applicant" selected>Applicant (job seeker)</option>
+              <option value="reviewer">Reviewer / recruiter</option>
+              <option value="employer">Employer</option>
+              <option value="agency">Staffing agency</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main id="main" class="container py-4">
+      <header class="mb-4">
+        <h1 class="h3 mb-1">Hiring match platform — prototype</h1>
+        <p class="text-secondary mb-0">
+          Static UI sketch: roles, decision points, immutable audit records, user-facing explanations,
+          and human review — without exposing proprietary model weights or prompts.
+        </p>
+      </header>
+
+      <div class="tab-content">
+        <section
+          class="tab-pane fade show active"
+          id="pane-overview"
+          role="tabpanel"
+          aria-labelledby="tab-overview"
+          tabindex="0"
+        >
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="h5">What this prototype stands for</h2>
+              <p>
+                The product automates <strong>which jobs surface for whom</strong> and
+                <strong>how candidates are ordered for employers</strong>, using preferences,
+                experience signals, and employer requirements. The business value is the decision
+                engine; governance makes those outcomes defensible.
+              </p>
+              <ul class="mb-0">
+                <li>
+                  <strong>Actors:</strong> job seekers, employers, recruiters, staffing agencies —
+                  mapped to platform roles and permissions.
+                </li>
+                <li>
+                  <strong>Trust:</strong> every scored or ranked outcome produces an append-only
+                  audit event with inputs, policy version, and outcome — suitable for regulators and
+                  internal replay without shipping secret sauce.
+                </li>
+                <li>
+                  <strong>User-facing layer:</strong> plain-language “why you saw this” plus a
+                  path to <strong>request human review</strong> of a specific decision.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade"
+          id="pane-personas"
+          role="tabpanel"
+          aria-labelledby="tab-personas"
+          tabindex="0"
+        >
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                  <h2 class="h5">Platform roles (≥3)</h2>
+                  <dl class="row small mb-0">
+                    <dt class="col-sm-4">Admin</dt>
+                    <dd class="col-sm-8">
+                      Policy packs, model registry pointers, feature flags, compliance exports,
+                      escalation queue.
+                    </dd>
+                    <dt class="col-sm-4">Applicant</dt>
+                    <dd class="col-sm-8">
+                      Job seeker: profile, resume, preferences, applications, transparency on
+                      ranking/matching.
+                    </dd>
+                    <dt class="col-sm-4">Reviewer / recruiter</dt>
+                    <dd class="col-sm-8">
+                      Employer or agency user: search, shortlists, human override within policy,
+                      review requests.
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                  <h2 class="h5">Business actors → permissions</h2>
+                  <table class="table table-sm align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">Actor</th>
+                        <th scope="col">Typical platform role</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Job seeker</td>
+                        <td>Applicant</td>
+                      </tr>
+                      <tr>
+                        <td>Employer</td>
+                        <td>Reviewer (tenant admin subset) + billing</td>
+                      </tr>
+                      <tr>
+                        <td>Recruiter</td>
+                        <td>Reviewer</td>
+                      </tr>
+                      <tr>
+                        <td>Staffing agency</td>
+                        <td>Reviewer (multi-tenant, candidate pool rules)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="applicant">
+            As an applicant you see job recommendations and explanations; you do not see other
+            candidates’ scores.
+          </p>
+        </section>
+
+        <section
+          class="tab-pane fade"
+          id="pane-decisions"
+          role="tabpanel"
+          aria-labelledby="tab-decisions"
+          tabindex="0"
+        >
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <h2 class="h5">Decision types (each must emit audit + optional user notice)</h2>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th scope="col">Decision</th>
+                      <th scope="col">Inputs (examples)</th>
+                      <th scope="col">Outputs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Job highlight / feed rank</td>
+                      <td>Seeker prefs, geo, skills, apply history, employer boost rules</td>
+                      <td>Ordered job list + position scores</td>
+                    </tr>
+                    <tr>
+                      <td>Candidate rank for requisition</td>
+                      <td>Req text, must-haves, resume embedding, assessments</td>
+                      <td>Ranked list + segment tags (skills match, etc.)</td>
+                    </tr>
+                    <tr>
+                      <td>Eligibility / hard filters</td>
+                      <td>Work auth, comp band, location policy</td>
+                      <td>Pass/fail + reason codes</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="row g-3 data-role-hint" data-show-for="reviewer employer agency">
+            <div class="col-md-6">
+              <div class="card border-primary h-100">
+                <div class="card-body">
+                  <h3 class="h6">Mock requisition view</h3>
+                  <p class="small mb-2">Senior backend engineer — remote US</p>
+                  <ol class="small mb-0" id="mockRankedCandidates">
+                    <li>Candidate A — fit 0.91</li>
+                    <li>Candidate B — fit 0.88</li>
+                    <li>Candidate C — fit 0.84</li>
+                  </ol>
+                  <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnLogRankView">
+                    Log “ranking viewed” (demo)
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card h-100">
+                <div class="card-body">
+                  <h3 class="h6">What you log (conceptually)</h3>
+                  <ul class="small mb-0">
+                    <li>Decision ID, tenant, actor, timestamp (UTC)</li>
+                    <li>Policy + model + feature set version IDs</li>
+                    <li>Hashed or redacted inputs; never raw proprietary prompts in user exports</li>
+                    <li>Outcome + calibrated explanation template ID</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade"
+          id="pane-audit"
+          role="tabpanel"
+          aria-labelledby="tab-audit"
+          tabindex="0"
+        >
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnFilterAll">
+              All
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnFilterMatch">
+              Job match
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnFilterRank">
+              Candidate rank
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnFilterReview">
+              Human review
+            </button>
+            <span class="ms-auto small text-secondary" id="auditCount"></span>
+          </div>
+          <div class="table-responsive shadow-sm rounded bg-white">
+            <table class="table table-hover table-sm mb-0" aria-describedby="auditCount">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Time (UTC)</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Subject</th>
+                  <th scope="col">Policy / model</th>
+                  <th scope="col">Outcome summary</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody"></tbody>
+            </table>
+          </div>
+          <p class="small text-secondary mt-2 mb-0">
+            Production systems store these rows in a WORM or append-only store; legal hold and
+            retention follow jurisdiction. This page uses in-memory demo data only.
+          </p>
+        </section>
+
+        <section
+          class="tab-pane fade"
+          id="pane-fairness"
+          role="tabpanel"
+          aria-labelledby="tab-fairness"
+          tabindex="0"
+        >
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h2 class="h5">Risks to monitor</h2>
+                  <ul class="mb-0">
+                    <li>
+                      <strong>Demographic bias in ranking</strong> — proxy features (school, zip,
+                      name patterns) can skew outcomes; monitor cohort parity and error rates by
+                      protected class where lawfully allowed.
+                    </li>
+                    <li>
+                      <strong>Filtered view of candidates</strong> — personalization can hide
+                      qualified people; surface “coverage” metrics to employers and avoid
+                      demographic targeting in ranking.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h2 class="h5">Controls (paired with audit)</h2>
+                  <ul class="mb-0">
+                    <li>Pre-deployment bias testing; periodic drift checks.</li>
+                    <li>Blinded features for certain stages; opt-in reveal with logging.</li>
+                    <li>Employer-facing “why ranked” uses approved templates only.</li>
+                    <li>Escalation to human review on disputed or edge-case decisions.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade"
+          id="pane-transparency"
+          role="tabpanel"
+          aria-labelledby="tab-transparency"
+          tabindex="0"
+        >
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <h2 class="h5">Baseline transparency (without exposing proprietary logic)</h2>
+              <p class="mb-2">
+                Users see <strong>categories of factors</strong> (e.g., skills overlap, location
+                policy, recency), <strong>policy version</strong>, and <strong>data you provided</strong>.
+                They do not see embeddings, weights, or internal prompt text.
+              </p>
+              <div class="alert alert-light border small mb-0">
+                <strong>Example applicant notice:</strong> “This job appeared higher because it
+                matches your saved skills (Python, APIs), matches your location preference, and was
+                posted recently. Policy: job-matching v2026.04. Decision ID: …”
+              </div>
+            </div>
+          </div>
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="h5">Request human review</h2>
+              <p class="text-secondary small">
+                Opens a ticket tied to a decision ID; compliance can respond without exposing model
+                internals.
+              </p>
+              <form id="formHumanReview" class="row g-2">
+                <div class="col-md-4">
+                  <label class="form-label small mb-0" for="reviewDecisionId">Decision ID</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    id="reviewDecisionId"
+                    name="decisionId"
+                    placeholder="e.g. dec-20260408-001"
+                    autocomplete="off"
+                  />
+                </div>
+                <div class="col-md-8">
+                  <label class="form-label small mb-0" for="reviewReason">Reason</label>
+                  <select class="form-select form-select-sm" id="reviewReason" name="reason">
+                    <option value="incorrect">Seems incorrect / unfair</option>
+                    <option value="missing">Missing context in explanation</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label small mb-0" for="reviewNotes">Notes (optional)</label>
+                  <textarea
+                    class="form-control form-control-sm"
+                    id="reviewNotes"
+                    name="notes"
+                    rows="2"
+                  ></textarea>
+                </div>
+                <div class="col-12">
+                  <button type="submit" class="btn btn-primary btn-sm">Submit request (demo)</button>
+                </div>
+              </form>
+              <div id="reviewFeedback" class="small mt-2" role="status" aria-live="polite"></div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="tab-pane fade"
+          id="pane-reference"
+          role="tabpanel"
+          aria-labelledby="tab-reference"
+          tabindex="0"
+        >
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="h5">Aligning with AIS-spring</h2>
+              <p>
+                If <strong>AIS-spring</strong> is your Spring-based stack (similar patterns appear in
+                Spring Boot ATS-style projects: REST modules, async pipelines, semantic search,
+                optional <strong>audit-log</strong> topics), map this prototype’s concepts to your
+                backend as follows:
+              </p>
+              <ul>
+                <li>
+                  <strong>Identity &amp; roles</strong> — Spring Security roles: <code>ADMIN</code>,
+                  <code>APPLICANT</code>, <code>REVIEWER</code>; extend with tenant claims for
+                  employer vs agency.
+                </li>
+                <li>
+                  <strong>Decision service</strong> — versioned “policy pack” + model pointer;
+                  outputs written to an <strong>append-only</strong> decision table and optional event
+                  bus for analytics.
+                </li>
+                <li>
+                  <strong>Explainability API</strong> — returns template-based explanations + decision
+                  ID; full detail for auditors with role gate.
+                </li>
+                <li>
+                  <strong>Human review</strong> — ticket entity referencing <code>decision_id</code>,
+                  SLA fields, and audit on resolution.
+                </li>
+              </ul>
+              <p class="small text-secondary mb-0">
+                Replace this section with links to your AIS-spring modules or README once the repo is
+                in this workspace or published — the prototype stays valid as the UX/governance shell.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div
+      class="modal fade"
+      id="modalReviewConfirm"
+      tabindex="-1"
+      aria-labelledby="modalReviewConfirmLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="modalReviewConfirmLabel">Review request recorded</h2>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p class="small mb-0" id="modalReviewConfirmBody"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script type="module" src="./scripts/app.js"></script>
+  </body>
+</html>
