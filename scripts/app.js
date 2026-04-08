@@ -499,6 +499,28 @@ function bootApp(session) {
   attachAppListenersOnce();
 }
 
+function quickLogin(email) {
+  const normalized = email.trim().toLowerCase();
+  const user = DEMO_USERS.find((u) => u.email === normalized);
+  if (!user) return;
+  saveSession(user.email);
+  bootApp(getSession());
+}
+
+function initQuickLoginButtons() {
+  const pairs = [
+    ["quickLoginApplicant", "maya.chen@example.com"],
+    ["quickLoginEmployee", "jordan.lee@acme.example"],
+    ["quickLoginAdmin", "ravi.patel@example.com"],
+  ];
+  for (const [id, email] of pairs) {
+    const btn = el(id);
+    if (btn) {
+      btn.addEventListener("click", () => quickLogin(email));
+    }
+  }
+}
+
 function initLoginForm() {
   const form = el("loginForm");
   const err = el("loginError");
@@ -541,6 +563,7 @@ function initLogout() {
 
 function init() {
   initLoginForm();
+  initQuickLoginButtons();
   initLogout();
 
   const session = getSession();
