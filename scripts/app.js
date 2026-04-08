@@ -1,6 +1,17 @@
 /**
- * TalentFlow demo — synthetic data, RBAC, audit log, human review.
+ * TalentFlow demo — login session, RBAC (seekers never see audit log), synthetic data.
  */
+
+const SESSION_KEY = "talentflow_demo_session_v1";
+const DEMO_PASSWORD = "demo123";
+
+/** Role is authoritative here; session only stores verified email. */
+const DEMO_USERS = [
+  { email: "maya.chen@example.com", password: DEMO_PASSWORD, name: "Maya Chen", role: "seeker" },
+  { email: "jordan.lee@acme.example", password: DEMO_PASSWORD, name: "Jordan Lee", role: "recruiter" },
+  { email: "sam.rivera@example.com", password: DEMO_PASSWORD, name: "Sam Rivera", role: "auditor" },
+  { email: "ravi.patel@example.com", password: DEMO_PASSWORD, name: "Ravi Patel", role: "admin" },
+];
 
 const AUDIT_EVENTS = [
   {
@@ -174,16 +185,17 @@ const AUDIT_EVENTS = [
 ];
 
 let auditFilter = "all";
+let appListenersAttached = false;
 
 const ROLE_BANNER = {
   seeker:
-    "Acting as Seeker: job matches and explainability; no system audit log.",
+    "Signed in as Seeker: job matches and explainability. Audit log is not available for your role.",
   recruiter:
-    "Acting as Recruiter: requisitions and ranking; audit log hidden (compliance only).",
+    "Signed in as Recruiter: requisitions and ranking. Audit log is restricted to Auditor and Admin.",
   auditor:
-    "Acting as Auditor: full compliance navigation including Audit log.",
+    "Signed in as Auditor: full compliance navigation including Audit log.",
   admin:
-    "Acting as Admin: full navigation including Audit log and exports.",
+    "Signed in as Admin: full navigation including Audit log and exports.",
 };
 
 const TAB_LABELS = {
@@ -198,6 +210,80 @@ const TAB_LABELS = {
 
 function el(id) {
   return document.getElementById(id);
+}
+
+function getSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const email = typeof parsed.email === "string" ? parsed.email.trim().toLowerCase() : "";
+    const user = DEMO_USERS.find((u) => u.email === email);
+    if (!user) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return { email: user.email, name: user.name, role: user.role };
+  } catch {
+    sessionStorage.removeItem(SESSION_KEY);
+    return null;
+  }
+}
+
+function saveSession(email) {
+  const normalized = email.trim().toLowerCase();
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalized }));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+function showLoginView() {
+  delete document.body.dataset.talentflowRole;
+  const loginView = el("loginView");
+  const appView = el("appView");
+  if (loginView) {
+    loginView.classList.remove("d-none");
+    loginView.setAttribute("aria-hidden", "false");
+  }
+  if (appView) {
+    appView.classList.add("d-none");
+    appView.setAttribute("aria-hidden", "true");
+  }
+}
+
+function showAppView() {
+  const loginView = el("loginView");
+  const appView = el("appView");
+  if (loginView) {
+    loginView.classList.add("d-none");
+    loginView.setAttribute("aria-hidden", "true");
+  }
+  if (appView) {
+    appView.classList.remove("d-none");
+    appView.setAttribute("aria-hidden", "false");
+  }
+}
+
+function updateSessionDisplay(session) {
+  const display = el("sessionUserDisplay");
+  if (!display || !session) return;
+  const badgeClass =
+    session.role === "seeker"
+      ? "text-bg-primary"
+      : session.role === "recruiter"
+        ? "text-bg-info text-dark"
+        : session.role === "auditor"
+          ? "text-bg-dark"
+          : "text-bg-secondary";
+  display.innerHTML =
+    escapeHtml(session.name) +
+    ' <span class="badge ' +
+    badgeClass +
+    '">' +
+    escapeHtml(session.role) +
+    "</span>";
 }
 
 function formatType(t) {
@@ -254,6 +340,8 @@ function roleAllowedForTab(li, role) {
 }
 
 function applyRoleAccess(role) {
+  document.body.dataset.talentflowRole = role;
+
   const items = document.querySelectorAll("li[data-rbac-allow]");
   let mustReselect = false;
 
@@ -262,8 +350,8 @@ function applyRoleAccess(role) {
     li.classList.toggle("d-none", !show);
     li.setAttribute("aria-hidden", show ? "false" : "true");
 
-    const btn = li.querySelector(".nav-link[data-bs-toggle='tab']");
-    if (!show && btn && btn.classList.contains("active")) {
+    const tabBtn = li.querySelector(".nav-link[data-bs-toggle='tab']");
+    if (!show && tabBtn && tabBtn.classList.contains("active")) {
       mustReselect = true;
     }
   }
@@ -289,7 +377,7 @@ function updateRoleBanner(role) {
     '<span class="d-block">' +
     escapeHtml(line) +
     "</span>" +
-    '<span class="d-block mt-1 small text-muted">Reference: <a href="https://github.com/Shnmg1/Ais-Spring.git" class="link-secondary">Ais-Spring</a></span>';
+    '<span class="d-block mt-1 small text-muted">Session is client-side demo only; production must enforce RBAC on the API.</span>';
 }
 
 function applyRolePreview(role) {
@@ -323,13 +411,6 @@ function initAuditFilters() {
       });
     }
   }
-}
-
-function initRoleSelect() {
-  const sel = el("roleSelect");
-  if (!sel) return;
-  sel.addEventListener("change", () => applyRoleAccess(sel.value));
-  applyRoleAccess(sel.value);
 }
 
 function initRankViewButton() {
@@ -387,7 +468,7 @@ function initHumanReviewForm() {
 
 function initTabTitles() {
   const titleEl = el("pageTitle");
-  document.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {
+  document.querySelectorAll("#appView [data-bs-toggle='tab']").forEach((btn) => {
     btn.addEventListener("shown.bs.tab", () => {
       const id = btn.id;
       if (titleEl && TAB_LABELS[id]) {
@@ -395,19 +476,79 @@ function initTabTitles() {
       }
     });
   });
-  const active = document.querySelector('.nav-link[data-bs-toggle="tab"].active');
+  const active = document.querySelector("#appView .nav-link[data-bs-toggle='tab'].active");
   if (titleEl && active && TAB_LABELS[active.id]) {
     titleEl.textContent = TAB_LABELS[active.id];
   }
 }
 
-function init() {
-  renderAuditTable();
+function attachAppListenersOnce() {
+  if (appListenersAttached) return;
+  appListenersAttached = true;
   initAuditFilters();
-  initRoleSelect();
   initRankViewButton();
   initHumanReviewForm();
   initTabTitles();
+}
+
+function bootApp(session) {
+  showAppView();
+  updateSessionDisplay(session);
+  applyRoleAccess(session.role);
+  renderAuditTable();
+  attachAppListenersOnce();
+}
+
+function initLoginForm() {
+  const form = el("loginForm");
+  const err = el("loginError");
+  if (!form) return;
+
+  form.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const emailInput = el("loginEmail");
+    const passInput = el("loginPassword");
+    const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
+    const password = passInput ? passInput.value : "";
+
+    if (err) {
+      err.classList.add("d-none");
+      err.textContent = "";
+    }
+
+    const user = DEMO_USERS.find((u) => u.email === email);
+    if (!user || user.password !== password) {
+      if (err) {
+        err.textContent = "Invalid email or password.";
+        err.classList.remove("d-none");
+      }
+      return;
+    }
+
+    saveSession(user.email);
+    bootApp(getSession());
+  });
+}
+
+function initLogout() {
+  const btn = el("btnLogout");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    clearSession();
+    document.location.reload();
+  });
+}
+
+function init() {
+  initLoginForm();
+  initLogout();
+
+  const session = getSession();
+  if (session) {
+    bootApp(session);
+  } else {
+    showLoginView();
+  }
 }
 
 init();

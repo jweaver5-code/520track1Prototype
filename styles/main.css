@@ -1,5 +1,12 @@
 /* TalentFlow demo — layout + RBAC */
 
+.login-view {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(160deg, #e9ecef 0%, #f8f9fa 45%, #dee2e6 100%);
+}
+
 .app-body {
   min-height: 100vh;
   display: flex;
@@ -41,6 +48,12 @@
 }
 
 [data-role-hidden="true"] {
+  display: none !important;
+}
+
+/* Extra guard: audit pane must not render for roles without audit API access */
+body[data-talentflow-role="seeker"] #pane-audit,
+body[data-talentflow-role="recruiter"] #pane-audit {
   display: none !important;
 }
 

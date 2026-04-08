@@ -17,10 +17,96 @@
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body class="bg-body-tertiary app-body">
-    <a class="visually-hidden-focusable position-absolute top-0 start-0 p-2" href="#main"
+    <a class="visually-hidden-focusable position-absolute top-0 start-0 p-2" href="#loginMain"
       >Skip to content</a
     >
 
+    <div id="loginView" class="login-view">
+      <div class="container py-5" id="loginMain">
+        <div class="row justify-content-center">
+          <div class="col-md-10 col-lg-7 col-xl-5">
+            <div class="card shadow border-0">
+              <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                  <span class="h4 fw-semibold"
+                    ><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>TalentFlow</span
+                  >
+                  <p class="text-secondary small mb-0">Sign in to continue</p>
+                </div>
+                <form id="loginForm" novalidate>
+                  <div class="mb-3">
+                    <label class="form-label" for="loginEmail">Work email</label>
+                    <input
+                      type="email"
+                      class="form-control"
+                      id="loginEmail"
+                      name="email"
+                      required
+                      autocomplete="username"
+                      placeholder="name@company.com"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="loginPassword"
+                      name="password"
+                      required
+                      autocomplete="current-password"
+                    />
+                  </div>
+                  <div id="loginError" class="alert alert-danger py-2 small d-none" role="alert"></div>
+                  <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>Sign in
+                  </button>
+                </form>
+                <hr class="my-4" />
+                <p class="small text-secondary mb-2 fw-semibold">Demo accounts (password for all: <code>demo123</code>)</p>
+                <div class="table-responsive small">
+                  <table class="table table-sm table-borderless mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">Email</th>
+                        <th scope="col">Role</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code class="small">maya.chen@example.com</code></td>
+                        <td><span class="badge text-bg-primary">Seeker</span></td>
+                      </tr>
+                      <tr>
+                        <td><code class="small">jordan.lee@acme.example</code></td>
+                        <td><span class="badge text-bg-info text-dark">Recruiter</span></td>
+                      </tr>
+                      <tr>
+                        <td><code class="small">sam.rivera@example.com</code></td>
+                        <td><span class="badge text-bg-dark">Auditor</span></td>
+                      </tr>
+                      <tr>
+                        <td><code class="small">ravi.patel@example.com</code></td>
+                        <td><span class="badge text-bg-secondary">Admin</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small text-muted mb-0 mt-3">
+                  Access to the audit log is enforced from your account role. Seekers never see it.
+                  Production systems validate permissions on the server for every request.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="appView" class="d-none" aria-hidden="true">
+    <a class="visually-hidden-focusable position-absolute top-0 start-0 p-2" href="#main"
+      >Skip to application</a
+    >
     <header class="app-topbar border-bottom bg-dark text-white">
       <div class="container py-2 d-flex flex-wrap align-items-center gap-2 gap-md-3">
         <a class="navbar-brand text-white mb-0 text-decoration-none fw-semibold" href="#main">
@@ -43,14 +129,12 @@
             />
           </div>
         </div>
-        <div class="d-flex align-items-center gap-2 text-white-50 small">
-          <label class="mb-0 text-nowrap" for="roleSelect">Signed in as</label>
-          <select id="roleSelect" class="form-select form-select-sm text-dark" aria-label="Acting role">
-            <option value="seeker" selected>Maya Chen · Seeker</option>
-            <option value="recruiter">Jordan Lee · Recruiter</option>
-            <option value="auditor">Sam Rivera · Auditor</option>
-            <option value="admin">R. Patel · Platform admin</option>
-          </select>
+        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end text-white-50 small">
+          <span class="text-white-50 me-1">Signed in as</span>
+          <span id="sessionUserDisplay" class="text-white fw-medium"></span>
+          <button type="button" id="btnLogout" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Log out
+          </button>
         </div>
       </div>
 
@@ -451,7 +535,7 @@
                     <td>Maya Chen</td>
                     <td><span class="badge text-bg-primary">Seeker</span></td>
                     <td>—</td>
-                    <td>m.chen@example.com</td>
+                    <td>maya.chen@example.com</td>
                     <td>2026-04-08 13:22</td>
                   </tr>
                   <tr>
@@ -842,6 +926,7 @@
         <span>© 2026 · All metrics fictional</span>
       </div>
     </footer>
+    </div>
 
     <div
       class="modal fade"
