@@ -1,9 +1,32 @@
-/* Minimal overrides; prefer Bootstrap utilities in HTML */
+/* TalentFlow demo — layout + RBAC */
+
+.app-body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-body > main {
+  flex: 1 0 auto;
+}
+
+.app-topbar .navbar-brand {
+  font-size: 1.05rem;
+}
+
+.app-topbar .form-select-sm {
+  max-width: 14rem;
+}
+
+.max-role-banner {
+  max-width: 28rem;
+}
 
 .navbar .nav-link {
   border: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.65);
+  border-radius: 0;
 }
 
 .navbar .nav-link:hover,
@@ -14,8 +37,17 @@
 .navbar .nav-link.active {
   color: #fff;
   font-weight: 600;
+  box-shadow: inset 0 -2px 0 0 #fff;
 }
 
 [data-role-hidden="true"] {
   display: none !important;
+}
+
+.table code {
+  font-size: 0.8em;
+}
+
+.font-monospace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

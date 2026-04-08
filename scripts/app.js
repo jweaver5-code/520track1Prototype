@@ -1,42 +1,175 @@
 /**
- * Track 1 prototype — in-memory audit demo, RBAC (Ais-Spring / TalentFlow roles), human review.
+ * TalentFlow demo — synthetic data, RBAC, audit log, human review.
  */
 
 const AUDIT_EVENTS = [
   {
-    time: "2026-04-08T14:02:11Z",
-    type: "job_match",
-    subject: "user=u-104 · feed=home",
-    policy: "policy job-matching v2026.04 / ranker v3.2",
-    outcome: "Top job: Senior Backend (score 0.87); factors: skills, geo, recency",
+    time: "2026-04-08T15:42:18Z",
+    type: "human_review",
+    subject: "ticket=hr-1201 · decision=dec-20260407-88f1 · reason=incorrect",
+    policy: "review SLA tier=standard",
+    outcome: "Queued · pool=compliance-na",
   },
   {
-    time: "2026-04-08T14:02:12Z",
+    time: "2026-04-08T15:19:02Z",
+    type: "audit_view",
+    subject: "actor=j.lee@acme · tenant=acme · action=export_shortlist · REQ-441",
+    policy: "access log v1",
+    outcome: "Export token ex-9082 · 11 rows",
+  },
+  {
+    time: "2026-04-08T14:55:41Z",
+    type: "candidate_rank",
+    subject: "req=REQ-441 · viewer=acme · pool=24",
+    policy: "candidate-rank v2026.03 · embed text-embed-v2",
+    outcome: "Ordered · top cand-91a · fit 0.91",
+  },
+  {
+    time: "2026-04-08T14:52:10Z",
     type: "job_match",
-    subject: "user=u-104 · job=j-9012",
-    policy: "policy job-matching v2026.04",
-    outcome: "Shown at position 1; explanation template em-geo-skills-01",
+    subject: "user=u-104 · job=j-nimbus-srbe",
+    policy: "job-matching v2026.04",
+    outcome: "Position 1 · score 0.91 · tpl em-geo-skills-01",
+  },
+  {
+    time: "2026-04-08T14:31:00Z",
+    type: "job_match",
+    subject: "user=u-088 · job=j-harbor-platform",
+    policy: "job-matching v2026.04",
+    outcome: "Position 2 · score 0.85",
   },
   {
     time: "2026-04-08T14:18:40Z",
     type: "candidate_rank",
-    subject: "req=r-441 · viewer=tenant-acme",
-    policy: "policy candidate-rank v2026.03 / embed model text-embed-v2",
-    outcome: "Ordered 24 candidates; top id=cand-A (0.91)",
+    subject: "req=REQ-388 · viewer=acme · pool=41",
+    policy: "candidate-rank v2026.03",
+    outcome: "Ordered · top cand-402 · fit 0.82",
   },
   {
-    time: "2026-04-08T14:19:02Z",
+    time: "2026-04-08T14:02:11Z",
+    type: "job_match",
+    subject: "user=u-104 · feed=home · session=s-9f2a",
+    policy: "job-matching v2026.04 / ranker v3.2",
+    outcome: "Feed built · 42 cards · diversity penalty on",
+  },
+  {
+    time: "2026-04-08T13:47:22Z",
     type: "audit_view",
-    subject: "actor=rev-12 · action=view_rank_list",
+    subject: "actor=s.rivera@example · action=open_audit_log · filter=24h",
     policy: "access log v1",
-    outcome: "Rank list displayed; watermark wm-20260408-441",
+    outcome: "Page view · wm-20260408-audit",
   },
   {
-    time: "2026-04-08T15:01:00Z",
+    time: "2026-04-08T12:10:05Z",
+    type: "candidate_rank",
+    subject: "req=REQ-502 · viewer=harbor · pool=19",
+    policy: "candidate-rank v2026.03",
+    outcome: "Re-run after policy tweak PR-188",
+  },
+  {
+    time: "2026-04-08T11:22:33Z",
+    type: "job_match",
+    subject: "user=u-201 · job=j-copperbank-api",
+    policy: "job-matching v2026.04",
+    outcome: "Score 0.84 · geo=Remote US",
+  },
+  {
+    time: "2026-04-08T09:14:08Z",
+    type: "human_review",
+    subject: "ticket=hr-008 · decision=dec-20260408-001 · flag=FLAG-9082",
+    policy: "escalation tier=2",
+    outcome: "Assigned · compliance analyst",
+  },
+  {
+    time: "2026-04-08T08:01:00Z",
+    type: "audit_view",
+    subject: "actor=c.vance@staffright · action=view_rank_list · REQ-610",
+    policy: "access log v1",
+    outcome: "Watermark wm-20260408-610",
+  },
+  {
+    time: "2026-04-07T22:18:44Z",
+    type: "candidate_rank",
+    subject: "req=REQ-610 · viewer=staffright · pool=33",
+    policy: "candidate-rank v2026.03",
+    outcome: "Agency pool rules applied",
+  },
+  {
+    time: "2026-04-07T18:02:00Z",
+    type: "job_match",
+    subject: "user=u-088 · feed=home",
+    policy: "job-matching v2026.04",
+    outcome: "18 cards · boost none",
+  },
+  {
+    time: "2026-04-07T16:40:00Z",
     type: "human_review",
     subject: "ticket=hr-008 · decision=dec-20260408-001",
     policy: "review SLA tier=standard",
-    outcome: "Queued; assigned pool=compliance-na",
+    outcome: "Queued; pool=compliance-na",
+  },
+  {
+    time: "2026-04-07T14:11:29Z",
+    type: "audit_view",
+    subject: "actor=r.patel@example · action=policy_export",
+    policy: "admin audit v2",
+    outcome: "Bundle pol-2026-04.zip",
+  },
+  {
+    time: "2026-04-07T11:05:00Z",
+    type: "candidate_rank",
+    subject: "req=REQ-441 · viewer=acme · pool=24",
+    policy: "candidate-rank v2026.03",
+    outcome: "Ordered · top cand-91a",
+  },
+  {
+    time: "2026-04-07T09:33:12Z",
+    type: "job_match",
+    subject: "user=u-104 · job=j-9012",
+    policy: "job-matching v2026.04",
+    outcome: "Shown pos 1 · explain tpl em-geo-skills-01",
+  },
+  {
+    time: "2026-04-07T08:00:00Z",
+    type: "audit_view",
+    subject: "actor=system · action=drift_check · embeddings",
+    policy: "monitoring v1",
+    outcome: "Drift index 0.01 · OK",
+  },
+  {
+    time: "2026-04-06T19:22:00Z",
+    type: "candidate_rank",
+    subject: "req=REQ-220 · viewer=acme · pool=12",
+    policy: "candidate-rank v2026.03",
+    outcome: "Ordered · top cand-110 · fit 0.77",
+  },
+  {
+    time: "2026-04-06T15:00:00Z",
+    type: "job_match",
+    subject: "user=u-310 · job=j-northwind-data",
+    policy: "job-matching v2026.04",
+    outcome: "Score 0.78 · skills partial",
+  },
+  {
+    time: "2026-04-06T10:15:00Z",
+    type: "human_review",
+    subject: "ticket=hr-004 · decision=dec-20260405-31c0",
+    policy: "review SLA tier=standard",
+    outcome: "Resolved · no change",
+  },
+  {
+    time: "2026-04-05T23:45:00Z",
+    type: "audit_view",
+    subject: "actor=j.lee@acme · action=view_rank_list",
+    policy: "access log v1",
+    outcome: "Rank list · REQ-441",
+  },
+  {
+    time: "2026-04-05T17:00:00Z",
+    type: "job_match",
+    subject: "user=u-201 · feed=search · q=backend",
+    policy: "job-matching v2026.04",
+    outcome: "Rerank · search blend 0.6",
   },
 ];
 
@@ -44,13 +177,23 @@ let auditFilter = "all";
 
 const ROLE_BANNER = {
   seeker:
-    "Viewing as Seeker (TalentFlow): job match and transparency; the Audit log tab is not available.",
+    "Acting as Seeker: job matches and explainability; no system audit log.",
   recruiter:
-    "Viewing as Recruiter / employer / agency: requisitions and ranking tools; the Audit log tab is not available (compliance auditors only).",
+    "Acting as Recruiter: requisitions and ranking; audit log hidden (compliance only).",
   auditor:
-    "Viewing as Auditor: full compliance navigation including the Audit log tab (append-only decision records).",
+    "Acting as Auditor: full compliance navigation including Audit log.",
   admin:
-    "Viewing as Admin: full navigation including Audit log and governance previews.",
+    "Acting as Admin: full navigation including Audit log and exports.",
+};
+
+const TAB_LABELS = {
+  "tab-dashboard": "Dashboard",
+  "tab-directory": "Directory",
+  "tab-decisions": "Decisions",
+  "tab-audit": "Audit log",
+  "tab-fairness": "Fairness",
+  "tab-transparency": "Explainability",
+  "tab-reference": "About",
 };
 
 function el(id) {
@@ -80,7 +223,7 @@ function renderAuditTable() {
     return true;
   });
 
-  countLabel.textContent = `${rows.length} event(s) shown`;
+  countLabel.textContent = `${rows.length} events`;
 
   body.replaceChildren();
   for (const e of rows) {
@@ -141,10 +284,12 @@ function applyRoleAccess(role) {
 function updateRoleBanner(role) {
   const banner = el("roleAccessBanner");
   if (!banner) return;
-  const base =
-    'Preview mode: navigation matches the selected role (see <a href="https://github.com/Shnmg1/Ais-Spring.git">Ais-Spring / TalentFlow</a>). ';
   const line = ROLE_BANNER[role] || "";
-  banner.innerHTML = base + "<span class=\"d-block mt-1\">" + escapeHtml(line) + "</span>";
+  banner.innerHTML =
+    '<span class="d-block">' +
+    escapeHtml(line) +
+    "</span>" +
+    '<span class="d-block mt-1 small text-muted">Reference: <a href="https://github.com/Shnmg1/Ais-Spring.git" class="link-secondary">Ais-Spring</a></span>';
 }
 
 function applyRolePreview(role) {
@@ -194,9 +339,9 @@ function initRankViewButton() {
     appendAuditEvent({
       time: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
       type: "audit_view",
-      subject: "actor=demo-reviewer · action=view_rank_list",
+      subject: "actor=j.lee@acme · action=view_rank_list · REQ-441",
       policy: "access log v1",
-      outcome: "Demo: ranking view logged",
+      outcome: "Shortlist viewed · wm-demo",
     });
   });
 }
@@ -223,7 +368,7 @@ function initHumanReviewForm() {
     });
 
     if (feedback) {
-      feedback.textContent = `Ticket ${ticketId} created (demo). Linked to decision ${decisionId}.`;
+      feedback.textContent = `Ticket ${ticketId} created. Linked to ${decisionId}.`;
     }
 
     const modalEl = el("modalReviewConfirm");
@@ -240,12 +385,29 @@ function initHumanReviewForm() {
   });
 }
 
+function initTabTitles() {
+  const titleEl = el("pageTitle");
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach((btn) => {
+    btn.addEventListener("shown.bs.tab", () => {
+      const id = btn.id;
+      if (titleEl && TAB_LABELS[id]) {
+        titleEl.textContent = TAB_LABELS[id];
+      }
+    });
+  });
+  const active = document.querySelector('.nav-link[data-bs-toggle="tab"].active');
+  if (titleEl && active && TAB_LABELS[active.id]) {
+    titleEl.textContent = TAB_LABELS[active.id];
+  }
+}
+
 function init() {
   renderAuditTable();
   initAuditFilters();
   initRoleSelect();
   initRankViewButton();
   initHumanReviewForm();
+  initTabTitles();
 }
 
 init();
