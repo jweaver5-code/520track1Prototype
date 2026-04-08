@@ -1,8 +1,8 @@
 /**
- * TalentFlow demo — login session, RBAC (seekers never see audit log), synthetic data.
+ * HireMatch governance demo — login session, RBAC (seekers never see audit log), synthetic data.
  */
 
-const SESSION_KEY = "talentflow_demo_session_v1";
+const SESSION_KEY = "hirematch_demo_session_v1";
 const DEMO_PASSWORD = "demo123";
 
 /** Role is authoritative here; session only stores verified email. */
@@ -244,7 +244,7 @@ function clearSession() {
 }
 
 function showLoginView() {
-  delete document.body.dataset.talentflowRole;
+  delete document.body.dataset.appRole;
   const loginView = el("loginView");
   const appView = el("appView");
   if (loginView) {
@@ -344,7 +344,7 @@ function roleAllowedForTab(li, role) {
 }
 
 function applyRoleAccess(role) {
-  document.body.dataset.talentflowRole = role;
+  document.body.dataset.appRole = role;
 
   const items = document.querySelectorAll("li[data-rbac-allow]");
   let mustReselect = false;
