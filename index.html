@@ -33,7 +33,11 @@
         </button>
         <div class="collapse navbar-collapse" id="navMain">
           <ul class="navbar-nav me-auto mb-2 mb-lg-0" role="tablist">
-            <li class="nav-item" role="presentation">
+            <li
+              class="nav-item"
+              role="presentation"
+              data-rbac-allow="seeker recruiter auditor admin"
+            >
               <button
                 class="nav-link active"
                 id="tab-overview"
@@ -47,7 +51,11 @@
                 Overview
               </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li
+              class="nav-item"
+              role="presentation"
+              data-rbac-allow="seeker recruiter auditor admin"
+            >
               <button
                 class="nav-link"
                 id="tab-personas"
@@ -61,7 +69,11 @@
                 Personas &amp; roles
               </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li
+              class="nav-item"
+              role="presentation"
+              data-rbac-allow="seeker recruiter auditor admin"
+            >
               <button
                 class="nav-link"
                 id="tab-decisions"
@@ -75,7 +87,11 @@
                 Automated decisions
               </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li
+              class="nav-item"
+              role="presentation"
+              data-rbac-allow="auditor admin"
+            >
               <button
                 class="nav-link"
                 id="tab-audit"
@@ -89,7 +105,11 @@
                 Audit log
               </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li
+              class="nav-item"
+              role="presentation"
+              data-rbac-allow="seeker recruiter auditor admin"
+            >
               <button
                 class="nav-link"
                 id="tab-fairness"
@@ -103,7 +123,11 @@
                 Fairness
               </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li
+              class="nav-item"
+              role="presentation"
+              data-rbac-allow="seeker recruiter auditor admin"
+            >
               <button
                 class="nav-link"
                 id="tab-transparency"
@@ -117,7 +141,11 @@
                 Transparency &amp; review
               </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li
+              class="nav-item"
+              role="presentation"
+              data-rbac-allow="seeker recruiter auditor admin"
+            >
               <button
                 class="nav-link"
                 id="tab-reference"
@@ -135,11 +163,10 @@
           <div class="d-flex align-items-center gap-2 text-white-50 small">
             <label class="mb-0" for="roleSelect">Preview as</label>
             <select id="roleSelect" class="form-select form-select-sm" aria-label="Preview as role">
-              <option value="admin">Admin</option>
-              <option value="applicant" selected>Applicant (job seeker)</option>
-              <option value="reviewer">Reviewer / recruiter</option>
-              <option value="employer">Employer</option>
-              <option value="agency">Staffing agency</option>
+              <option value="seeker" selected>Seeker (job seeker)</option>
+              <option value="recruiter">Recruiter / employer / agency</option>
+              <option value="auditor">Auditor (compliance)</option>
+              <option value="admin">Admin (platform)</option>
             </select>
           </div>
         </div>
@@ -152,6 +179,10 @@
         <p class="text-secondary mb-0">
           Static UI sketch: roles, decision points, immutable audit records, user-facing explanations,
           and human review — without exposing proprietary model weights or prompts.
+        </p>
+        <p id="roleAccessBanner" class="alert alert-secondary py-2 px-3 small mb-0 mt-3" role="status">
+          Preview mode: navigation matches the selected role (aligned with
+          <a href="https://github.com/Shnmg1/Ais-Spring.git">Ais-Spring / TalentFlow</a>).
         </p>
       </header>
 
@@ -202,22 +233,27 @@
             <div class="col-lg-6">
               <div class="card h-100 shadow-sm">
                 <div class="card-body">
-                  <h2 class="h5">Platform roles (≥3)</h2>
+                  <h2 class="h5">Platform roles (Ais-Spring / TalentFlow)</h2>
                   <dl class="row small mb-0">
+                    <dt class="col-sm-4">Seeker</dt>
+                    <dd class="col-sm-8">
+                      Job seeker / employee: profile, skills, applications, job board, AI career and
+                      gap analysis — not system audit logs.
+                    </dd>
+                    <dt class="col-sm-4">Recruiter</dt>
+                    <dd class="col-sm-8">
+                      Hiring side: candidate search, pipeline, ranking views, AI hiring intelligence.
+                      Employers and staffing agencies map here (tenant-scoped).
+                    </dd>
+                    <dt class="col-sm-4">Auditor</dt>
+                    <dd class="col-sm-8">
+                      Compliance: audit log viewer, adverse impact, anomaly detection, DEI and access
+                      monitoring.
+                    </dd>
                     <dt class="col-sm-4">Admin</dt>
                     <dd class="col-sm-8">
-                      Policy packs, model registry pointers, feature flags, compliance exports,
-                      escalation queue.
-                    </dd>
-                    <dt class="col-sm-4">Applicant</dt>
-                    <dd class="col-sm-8">
-                      Job seeker: profile, resume, preferences, applications, transparency on
-                      ranking/matching.
-                    </dd>
-                    <dt class="col-sm-4">Reviewer / recruiter</dt>
-                    <dd class="col-sm-8">
-                      Employer or agency user: search, shortlists, human override within policy,
-                      review requests.
+                      Platform operator: policy packs, exports, feature flags — prototype uses this as
+                      full access.
                     </dd>
                   </dl>
                 </div>
@@ -237,19 +273,19 @@
                     <tbody>
                       <tr>
                         <td>Job seeker</td>
-                        <td>Applicant</td>
+                        <td>Seeker</td>
                       </tr>
                       <tr>
                         <td>Employer</td>
-                        <td>Reviewer (tenant admin subset) + billing</td>
+                        <td>Recruiter (tenant)</td>
                       </tr>
                       <tr>
-                        <td>Recruiter</td>
-                        <td>Reviewer</td>
+                        <td>Agency recruiter</td>
+                        <td>Recruiter (multi-tenant rules)</td>
                       </tr>
                       <tr>
-                        <td>Staffing agency</td>
-                        <td>Reviewer (multi-tenant, candidate pool rules)</td>
+                        <td>Compliance / risk</td>
+                        <td>Auditor</td>
                       </tr>
                     </tbody>
                   </table>
@@ -257,9 +293,17 @@
               </div>
             </div>
           </div>
-          <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="applicant">
-            As an applicant you see job recommendations and explanations; you do not see other
-            candidates’ scores.
+          <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="seeker">
+            As a seeker you see job recommendations and match explanations; you do not see other
+            candidates’ scores or the system audit log.
+          </p>
+          <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="recruiter">
+            As a recruiter you see requisitions, ranked candidates, and pipeline tools — not the full
+            compliance audit suite (that is for Auditor).
+          </p>
+          <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="auditor admin">
+            As auditor (or admin) you can open the <strong>Audit log</strong> tab for append-only
+            decision records and monitoring views.
           </p>
         </section>
 
@@ -303,7 +347,7 @@
               </div>
             </div>
           </div>
-          <div class="row g-3 data-role-hint" data-show-for="reviewer employer agency">
+          <div class="row g-3 data-role-hint" data-show-for="recruiter auditor admin">
             <div class="col-md-6">
               <div class="card border-primary h-100">
                 <div class="card-body">
@@ -385,7 +429,17 @@
           aria-labelledby="tab-fairness"
           tabindex="0"
         >
-          <div class="row g-3">
+          <div class="card shadow-sm mb-3 data-role-hint" data-show-for="seeker">
+            <div class="card-body">
+              <h2 class="h5">What you see as a seeker</h2>
+              <p class="small mb-0">
+                Fairness protections run in the background (monitoring, adverse impact checks, human
+                review). You get transparency on <strong>your</strong> matches and can request review
+                of a decision; detailed workforce analytics are limited to recruiters and auditors.
+              </p>
+            </div>
+          </div>
+          <div class="row g-3 data-role-hint" data-show-for="recruiter auditor admin">
             <div class="col-lg-6">
               <div class="card shadow-sm h-100">
                 <div class="card-body">
@@ -443,7 +497,7 @@
               </div>
             </div>
           </div>
-          <div class="card shadow-sm">
+          <div class="card shadow-sm data-role-hint" data-show-for="seeker recruiter admin">
             <div class="card-body">
               <h2 class="h5">Request human review</h2>
               <p class="text-secondary small">
@@ -497,37 +551,39 @@
         >
           <div class="card shadow-sm">
             <div class="card-body">
-              <h2 class="h5">Aligning with AIS-spring</h2>
+              <h2 class="h5">Ais-Spring (TalentFlow) reference</h2>
               <p>
-                If <strong>AIS-spring</strong> is your Spring-based stack (similar patterns appear in
-                Spring Boot ATS-style projects: REST modules, async pipelines, semantic search,
-                optional <strong>audit-log</strong> topics), map this prototype’s concepts to your
-                backend as follows:
+                Upstream repo:
+                <a href="https://github.com/Shnmg1/Ais-Spring.git">https://github.com/Shnmg1/Ais-Spring.git</a>
+                — vanilla JS client + Express/Bun API, Gemini AI, MySQL. Product name in the README is
+                <strong>TalentFlow</strong>.
               </p>
-              <ul>
+              <h3 class="h6">Roles vs this prototype</h3>
+              <ul class="mb-3">
                 <li>
-                  <strong>Identity &amp; roles</strong> — Spring Security roles: <code>ADMIN</code>,
-                  <code>APPLICANT</code>, <code>REVIEWER</code>; extend with tenant claims for
-                  employer vs agency.
+                  <strong>Seeker</strong> — job board, AI career / gap analysis; no auditor-only audit
+                  log UI.
                 </li>
                 <li>
-                  <strong>Decision service</strong> — versioned “policy pack” + model pointer;
-                  outputs written to an <strong>append-only</strong> decision table and optional event
-                  bus for analytics.
+                  <strong>Recruiter</strong> — pipeline insights, candidate summary, AI ranking; not the
+                  full compliance console.
                 </li>
                 <li>
-                  <strong>Explainability API</strong> — returns template-based explanations + decision
-                  ID; full detail for auditors with role gate.
-                </li>
-                <li>
-                  <strong>Human review</strong> — ticket entity referencing <code>decision_id</code>,
-                  SLA fields, and audit on resolution.
+                  <strong>Auditor</strong> — anomaly detection, adverse impact (4/5ths), audit log
+                  summary &amp; NL query — maps to the <strong>Audit log</strong> tab here.
                 </li>
               </ul>
-              <p class="small text-secondary mb-0">
-                Replace this section with links to your AIS-spring modules or README once the repo is
-                in this workspace or published — the prototype stays valid as the UX/governance shell.
-              </p>
+              <h3 class="h6">Governance hooks to mirror</h3>
+              <ul class="mb-0">
+                <li>
+                  De-identified data before external AI; versioned prompts/cache; append-only decision
+                  records for legal replay.
+                </li>
+                <li>
+                  Explainability for users via templates + decision IDs; proprietary weights stay
+                  server-side.
+                </li>
+              </ul>
             </div>
           </div>
         </section>

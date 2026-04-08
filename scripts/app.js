@@ -1,5 +1,5 @@
 /**
- * Track 1 prototype — in-memory audit demo, role preview, human review flow.
+ * Track 1 prototype — in-memory audit demo, RBAC (Ais-Spring / TalentFlow roles), human review.
  */
 
 const AUDIT_EVENTS = [
@@ -41,6 +41,17 @@ const AUDIT_EVENTS = [
 ];
 
 let auditFilter = "all";
+
+const ROLE_BANNER = {
+  seeker:
+    "Viewing as Seeker (TalentFlow): job match and transparency; the Audit log tab is not available.",
+  recruiter:
+    "Viewing as Recruiter / employer / agency: requisitions and ranking tools; the Audit log tab is not available (compliance auditors only).",
+  auditor:
+    "Viewing as Auditor: full compliance navigation including the Audit log tab (append-only decision records).",
+  admin:
+    "Viewing as Admin: full navigation including Audit log and governance previews.",
+};
 
 function el(id) {
   return document.getElementById(id);
@@ -93,6 +104,49 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function roleAllowedForTab(li, role) {
+  const raw = li.getAttribute("data-rbac-allow") || "";
+  const allowed = raw.split(/\s+/).filter(Boolean);
+  return allowed.includes(role);
+}
+
+function applyRoleAccess(role) {
+  const items = document.querySelectorAll("li[data-rbac-allow]");
+  let mustReselect = false;
+
+  for (const li of items) {
+    const show = roleAllowedForTab(li, role);
+    li.classList.toggle("d-none", !show);
+    li.setAttribute("aria-hidden", show ? "false" : "true");
+
+    const btn = li.querySelector(".nav-link[data-bs-toggle='tab']");
+    if (!show && btn && btn.classList.contains("active")) {
+      mustReselect = true;
+    }
+  }
+
+  if (mustReselect && window.bootstrap) {
+    const firstVisible = document.querySelector(
+      "li[data-rbac-allow]:not(.d-none) .nav-link[data-bs-toggle='tab']"
+    );
+    if (firstVisible) {
+      window.bootstrap.Tab.getOrCreateInstance(firstVisible).show();
+    }
+  }
+
+  updateRoleBanner(role);
+  applyRolePreview(role);
+}
+
+function updateRoleBanner(role) {
+  const banner = el("roleAccessBanner");
+  if (!banner) return;
+  const base =
+    'Preview mode: navigation matches the selected role (see <a href="https://github.com/Shnmg1/Ais-Spring.git">Ais-Spring / TalentFlow</a>). ';
+  const line = ROLE_BANNER[role] || "";
+  banner.innerHTML = base + "<span class=\"d-block mt-1\">" + escapeHtml(line) + "</span>";
+}
+
 function applyRolePreview(role) {
   const hints = document.querySelectorAll(".data-role-hint");
   for (const node of hints) {
@@ -129,8 +183,8 @@ function initAuditFilters() {
 function initRoleSelect() {
   const sel = el("roleSelect");
   if (!sel) return;
-  sel.addEventListener("change", () => applyRolePreview(sel.value));
-  applyRolePreview(sel.value);
+  sel.addEventListener("change", () => applyRoleAccess(sel.value));
+  applyRoleAccess(sel.value);
 }
 
 function initRankViewButton() {
