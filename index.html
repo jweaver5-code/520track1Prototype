@@ -110,8 +110,11 @@
           </div>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end text-white-50 small">
-          <span class="text-white-50 me-1">Signed in as</span>
-          <span id="sessionUserDisplay" class="text-white fw-medium"></span>
+          <span
+            id="navbarLoggedInBadge"
+            class="badge rounded-pill bg-white text-dark fw-normal px-3 py-2 border border-light border-opacity-25"
+            >Logged in as: —</span
+          >
           <button type="button" id="btnLogout" class="btn btn-outline-light btn-sm">
             <i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Log out
           </button>
@@ -193,7 +196,7 @@
                   <i class="bi bi-trophy me-1" aria-hidden="true"></i>Ranked talent
                 </button>
               </li>
-              <li class="nav-item" role="presentation" data-rbac-allow="recruiter auditor admin">
+              <li class="nav-item" role="presentation" data-rbac-allow="recruiter admin auditor">
                 <button
                   class="nav-link px-3"
                   id="tab-review-requests"
@@ -313,9 +316,20 @@
       <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
           <h1 class="h4 mb-1" id="pageTitle">Dashboard</h1>
-          <p class="text-secondary small mb-0" id="pageSubtitle">Environment: <strong>Demo</strong> · Region US-East · Build 2026.04.08</p>
+          <p class="text-secondary small mb-0" id="pageSubtitle">Welcome</p>
         </div>
         <p id="roleAccessBanner" class="alert alert-light border border-teal-tint py-2 px-3 small mb-0 max-role-banner" role="status"></p>
+      </div>
+
+      <div
+        id="ethicsComplianceBanner"
+        class="alert alert-warning border border-warning py-2 px-3 small mb-3 d-none data-role-hint"
+        data-show-for="admin auditor"
+        role="status"
+      >
+        <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>
+        <strong>Ethics board queue:</strong>
+        <span id="ethicsQueueCountLabel">0</span> ticket(s) in <strong>Under Ethical Review</strong> (escalated from fairness-flagged reviews).
       </div>
 
       <div class="tab-content">
@@ -331,39 +345,38 @@
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">Active applications</div>
-                    <div class="fs-4 fw-semibold">3</div>
+                    <div class="text-secondary small">Transparency requests</div>
+                    <div class="fs-4 fw-semibold" id="metricSeekerApps">—</div>
                   </div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">Saved roles</div>
-                    <div class="fs-4 fw-semibold">12</div>
+                    <div class="text-secondary small">Scoring criteria (corpus)</div>
+                    <div class="fs-4 fw-semibold" id="metricSeekerSaved">—</div>
                   </div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">Profile strength</div>
-                    <div class="fs-4 fw-semibold">0.82</div>
+                    <div class="text-secondary small">Linked decision factors</div>
+                    <div class="fs-4 fw-semibold" id="metricSeekerStrength">—</div>
                   </div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">AI match (avg.)</div>
-                    <div class="fs-4 fw-semibold text-success">0.79</div>
+                    <div class="text-secondary small">Avg. factor impact</div>
+                    <div class="fs-4 fw-semibold text-success" id="metricSeekerAi">—</div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="alert alert-light border mb-0 small">
-              <strong>Your ranked job feed</strong> lives on the <strong>Job postings</strong> tab — same
-              policy engine (job-matching v2026.04), sorted by match score for your profile.
+              Open <strong>Job postings</strong> to see roles ranked for your profile.
             </div>
           </div>
 
@@ -372,16 +385,16 @@
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">Open requisitions</div>
-                    <div class="fs-4 fw-semibold">8</div>
+                    <div class="text-secondary small">Scoring criteria rows</div>
+                    <div class="fs-4 fw-semibold" id="metricRecOpenReq">—</div>
                   </div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">Candidates in review</div>
-                    <div class="fs-4 fw-semibold">34</div>
+                    <div class="text-secondary small">Seeker-role users</div>
+                    <div class="fs-4 fw-semibold" id="metricRecCandidates">—</div>
                   </div>
                 </div>
               </div>
@@ -389,23 +402,22 @@
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
                     <div class="text-secondary small">Median time in stage</div>
-                    <div class="fs-4 fw-semibold">6.2 d</div>
+                    <div class="fs-4 fw-semibold" id="metricRecMedian">—</div>
                   </div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">AI rank runs (7d)</div>
-                    <div class="fs-4 fw-semibold">127</div>
+                    <div class="text-secondary small">Audit events (7d)</div>
+                    <div class="fs-4 fw-semibold" id="metricRecRuns">—</div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="alert alert-light border small mb-0">
-              <strong>AI-ranked candidates</strong> by requisition are on <strong>Ranked talent</strong>.
-              <strong>Applicant human-review</strong> tickets are on <strong>Review requests</strong>. Directory
-              and About are limited to Auditor/Admin in this demo.
+              Use <strong>Ranked talent</strong> for your shortlist and <strong>Review requests</strong> to work
+              applicant transparency tickets. Directory and About are available to auditors and admins.
             </div>
           </div>
 
@@ -415,46 +427,39 @@
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
                     <div class="text-secondary small">Audit events (24h)</div>
-                    <div class="fs-4 fw-semibold">1,420</div>
+                    <div class="fs-4 fw-semibold" id="metricAudAudit">—</div>
                   </div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">Open compliance flags</div>
-                    <div class="fs-4 fw-semibold text-warning">2</div>
+                    <div class="text-secondary small">Pending transparency</div>
+                    <div class="fs-4 fw-semibold text-warning" id="metricAudFlags">—</div>
                   </div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">Adverse impact checks</div>
-                    <div class="fs-4 fw-semibold">OK</div>
+                    <div class="text-secondary small">Adverse impact</div>
+                    <div class="fs-4 fw-semibold" id="metricAudImpact">—</div>
                   </div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="card shadow-sm border-0 h-100">
                   <div class="card-body">
-                    <div class="text-secondary small">Policy drift index</div>
-                    <div class="fs-4 fw-semibold">0.01</div>
+                    <div class="text-secondary small">Policy drift</div>
+                    <div class="fs-4 fw-semibold" id="metricAudDrift">—</div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="card shadow-sm mb-3">
-              <div class="card-header bg-white py-2 fw-semibold">Recent escalations</div>
-              <ul class="list-group list-group-flush small">
-                <li class="list-group-item d-flex justify-content-between">
-                  <span>FLAG-9082 · Ranking cohort parity below threshold · REQ-441</span>
-                  <span class="text-secondary">04/08 09:14 UTC</span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between">
-                  <span>HR-1201 · Human review requested · dec-20260407-88f1</span>
-                  <span class="text-secondary">04/07 16:40 UTC</span>
-                </li>
+              <div class="card-header bg-white py-2 fw-semibold">Recent audit log summaries</div>
+              <ul class="list-group list-group-flush small" id="dashEscalationsList">
+                <li class="list-group-item text-secondary small">Loading…</li>
               </ul>
             </div>
           </div>
@@ -471,8 +476,7 @@
             <div class="card-header bg-white py-3">
               <h2 class="h5 mb-1">Ranked for you</h2>
               <p class="text-secondary small mb-0">
-                Order and scores reflect your saved skills, location preferences, and recent activity.
-                Policy: <code>job-matching v2026.04</code>
+                Open roles and match scores for your profile. Salary and location are not stored for these rows.
               </p>
             </div>
             <div class="table-responsive">
@@ -489,73 +493,15 @@
                     <th scope="col">Decision ID</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="jobMatchesTableBody">
                   <tr>
-                    <td>1</td>
-                    <td>Senior Backend Engineer</td>
-                    <td>Nimbus Analytics</td>
-                    <td>Remote · US</td>
-                    <td class="text-end">$165k–$195k</td>
-                    <td class="text-end"><span class="badge text-bg-success">0.91</span></td>
-                    <td class="small">Python, REST, AWS · Remote match · Posted 2d ago</td>
-                    <td><code class="small">dec-20260408-14a2</code></td>
-                  </tr>
-                  <tr>
-                    <td>2</td>
-                    <td>Platform Engineer II</td>
-                    <td>Harbor Health Systems</td>
-                    <td>Chicago, IL</td>
-                    <td class="text-end">$140k–$170k</td>
-                    <td class="text-end"><span class="badge text-bg-primary">0.87</span></td>
-                    <td class="small">APIs, Kubernetes · Skills gap: minor</td>
-                    <td><code class="small">dec-20260408-14a3</code></td>
-                  </tr>
-                  <tr>
-                    <td>3</td>
-                    <td>API Developer</td>
-                    <td>Copperlane Bank</td>
-                    <td>Remote · US</td>
-                    <td class="text-end">$130k–$155k</td>
-                    <td class="text-end"><span class="badge text-bg-primary">0.84</span></td>
-                    <td class="small">Java &amp; microservices · Regulatory domain fit</td>
-                    <td><code class="small">dec-20260408-14b1</code></td>
-                  </tr>
-                  <tr>
-                    <td>4</td>
-                    <td>Staff Engineer — Data</td>
-                    <td>Northwind Labs</td>
-                    <td>Austin, TX</td>
-                    <td class="text-end">$175k–$210k</td>
-                    <td class="text-end"><span class="badge text-bg-secondary">0.78</span></td>
-                    <td class="small">Spark, streaming · Location: open to relocate</td>
-                    <td><code class="small">dec-20260408-14c0</code></td>
-                  </tr>
-                  <tr>
-                    <td>5</td>
-                    <td>Software Engineer III</td>
-                    <td>Riverstone Retail</td>
-                    <td>Remote · US</td>
-                    <td class="text-end">$125k–$148k</td>
-                    <td class="text-end"><span class="badge text-bg-secondary">0.76</span></td>
-                    <td class="small">E-commerce scale · Team match culture index</td>
-                    <td><code class="small">dec-20260407-91e2</code></td>
-                  </tr>
-                  <tr>
-                    <td>6</td>
-                    <td>Backend Engineer</td>
-                    <td>Skyline Mobility</td>
-                    <td>Denver, CO</td>
-                    <td class="text-end">$135k–$160k</td>
-                    <td class="text-end"><span class="badge text-bg-secondary">0.74</span></td>
-                    <td class="small">Go, gRPC · Commute filter relaxed</td>
-                    <td><code class="small">dec-20260407-88aa</code></td>
+                    <td colspan="8" class="text-secondary small">Select this tab to load your job feed.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div class="card-footer bg-white small text-secondary">
-              Apply actions are disabled in this demo. Production ties applications to audit events per
-              click.
+              Apply / save actions are not wired; production would persist applications and audit each action.
             </div>
           </div>
         </section>
@@ -577,10 +523,10 @@
                   >
                     <i class="bi bi-person-fill" style="font-size: 3rem" aria-hidden="true"></i>
                   </div>
-                  <h2 class="h5 mb-0">Maya Chen</h2>
-                  <p class="text-secondary small mb-2">Software engineer · Job seeker</p>
-                  <p class="small mb-0">
-                    <i class="bi bi-geo-alt me-1" aria-hidden="true"></i>Austin, TX (open to remote)
+                  <h2 class="h5 mb-0" id="profileDisplayName">—</h2>
+                  <p class="text-secondary small mb-2" id="profileDisplayMeta">Select this tab to load your profile.</p>
+                  <p class="small mb-0 text-secondary">
+                    <i class="bi bi-person-badge me-1" aria-hidden="true"></i>Account details from your hiring record.
                   </p>
                 </div>
               </div>
@@ -591,31 +537,23 @@
                 <div class="card-body">
                   <dl class="row small mb-0">
                     <dt class="col-sm-4">Email</dt>
-                    <dd class="col-sm-8">maya.chen@example.com</dd>
+                    <dd class="col-sm-8" id="profileDisplayEmail">—</dd>
                     <dt class="col-sm-4">Phone</dt>
-                    <dd class="col-sm-8">(512) 555-0198</dd>
+                    <dd class="col-sm-8 text-secondary">—</dd>
                     <dt class="col-sm-4">Work authorization</dt>
-                    <dd class="col-sm-8">US citizen</dd>
+                    <dd class="col-sm-8 text-secondary">—</dd>
                     <dt class="col-sm-4">Notice period</dt>
-                    <dd class="col-sm-8">2 weeks</dd>
+                    <dd class="col-sm-8 text-secondary">—</dd>
                   </dl>
                 </div>
               </div>
               <div class="card shadow-sm mb-3">
                 <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
                   <span class="fw-semibold">Resume</span>
-                  <span class="badge text-bg-light border">PDF · v2026-04-01</span>
+                  <span class="badge text-bg-light border">Not stored</span>
                 </div>
-                <div class="card-body small">
-                  <p class="mb-2 fw-semibold">Maya_Chen_Resume.pdf</p>
-                  <p class="text-secondary mb-2">
-                    Backend-focused engineer with 6+ years building APIs and data services. Recent work:
-                    payment pipelines, event-driven architecture, AWS.
-                  </p>
-                  <ul class="mb-0">
-                    <li>Nimbus Analytics — Senior Engineer (2022–present)</li>
-                    <li>Copperlane Bank — Engineer II (2018–2022)</li>
-                  </ul>
+                <div class="card-body small text-secondary">
+                  <p class="mb-0 text-secondary">Resume content is not on file in this system.</p>
                 </div>
               </div>
             </div>
@@ -625,26 +563,15 @@
               <div class="card shadow-sm h-100">
                 <div class="card-header bg-white py-2 fw-semibold">Skills</div>
                 <div class="card-body">
-                  <p class="small mb-2">
-                    <span class="badge text-bg-primary me-1">Python</span>
-                    <span class="badge text-bg-primary me-1">REST APIs</span>
-                    <span class="badge text-bg-primary me-1">AWS</span>
-                    <span class="badge text-bg-secondary me-1">Kubernetes</span>
-                    <span class="badge text-bg-secondary me-1">PostgreSQL</span>
-                    <span class="badge text-bg-secondary me-1">Kafka</span>
-                  </p>
-                  <p class="small text-secondary mb-0">Last inferred from resume + assessments · 2026-04-01</p>
+                  <p class="small text-secondary mb-0">See Explainability for active models and policy rules.</p>
                 </div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="card shadow-sm h-100">
                 <div class="card-header bg-white py-2 fw-semibold">Education &amp; certifications</div>
-                <div class="card-body small">
-                  <p class="mb-1"><strong>BS Computer Science</strong> — UT Austin · 2017</p>
-                  <p class="mb-0">
-                    <strong>AWS Solutions Architect – Associate</strong> · Expires 2027
-                  </p>
+                <div class="card-body small text-secondary">
+                  <p class="mb-0">No education or certification records on file.</p>
                 </div>
               </div>
             </div>
@@ -658,13 +585,11 @@
           aria-labelledby="tab-ranked"
           tabindex="0"
         >
+          <div id="rankedTalentApiMessage" class="alert alert-danger small d-none" role="alert"></div>
           <div class="card shadow-sm mb-3">
             <div class="card-header bg-white py-3">
               <h2 class="h5 mb-1">Top candidates · AI ranking</h2>
-              <p class="text-secondary small mb-0">
-                Ordered by model fit for each open requisition (tenant Acme Corp). Policy
-                <code>candidate-rank v2026.03</code> · embeddings <code>text-embed-v2</code>
-              </p>
+              <p class="text-secondary small mb-0">Candidates ordered by model fit from your hiring data.</p>
             </div>
             <div class="table-responsive">
               <table class="table table-hover table-sm align-middle mb-0">
@@ -676,62 +601,18 @@
                     <th scope="col" class="text-end">AI fit</th>
                     <th scope="col">Signals</th>
                     <th scope="col">Run ID</th>
+                    <th scope="col" class="text-end">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="rankedTalentTableBody">
                   <tr>
-                    <td>1</td>
-                    <td>Jordan Park</td>
-                    <td>REQ-441 · Sr Backend · Remote</td>
-                    <td class="text-end"><span class="badge text-bg-success">0.91</span></td>
-                    <td class="small">Python, distributed systems, fintech</td>
-                    <td><code class="small">rn-20260408-441a</code></td>
-                  </tr>
-                  <tr>
-                    <td>2</td>
-                    <td>Samira Haddad</td>
-                    <td>REQ-441 · Sr Backend · Remote</td>
-                    <td class="text-end"><span class="badge text-bg-primary">0.88</span></td>
-                    <td class="small">APIs, gap: large-scale dist. systems</td>
-                    <td><code class="small">rn-20260408-441a</code></td>
-                  </tr>
-                  <tr>
-                    <td>3</td>
-                    <td>Devon Ellis</td>
-                    <td>REQ-441 · Sr Backend · Remote</td>
-                    <td class="text-end"><span class="badge text-bg-primary">0.84</span></td>
-                    <td class="small">Strong API design, Node &amp; Go</td>
-                    <td><code class="small">rn-20260408-441a</code></td>
-                  </tr>
-                  <tr>
-                    <td>1</td>
-                    <td>Maya Chen</td>
-                    <td>REQ-502 · Security Engineer</td>
-                    <td class="text-end"><span class="badge text-bg-success">0.86</span></td>
-                    <td class="small">AppSec, threat modeling, AWS IAM</td>
-                    <td><code class="small">rn-20260408-502b</code></td>
-                  </tr>
-                  <tr>
-                    <td>2</td>
-                    <td>Wei Zhang</td>
-                    <td>REQ-502 · Security Engineer</td>
-                    <td class="text-end"><span class="badge text-bg-primary">0.81</span></td>
-                    <td class="small">SOC2, encryption at rest</td>
-                    <td><code class="small">rn-20260408-502b</code></td>
-                  </tr>
-                  <tr>
-                    <td>1</td>
-                    <td>Olivia Grant</td>
-                    <td>REQ-388 · Data Platform Lead</td>
-                    <td class="text-end"><span class="badge text-bg-success">0.89</span></td>
-                    <td class="small">Spark, streaming, data mesh</td>
-                    <td><code class="small">rn-20260407-388c</code></td>
+                    <td colspan="7" class="text-secondary small">Loading ranked talent...</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div class="card-footer bg-white small text-secondary">
-              Rankings refresh on requisition edit or manual re-run. Demo data only.
+              Refresh the tab after data updates to see the latest rankings.
             </div>
           </div>
         </section>
@@ -743,58 +624,86 @@
           aria-labelledby="tab-review-requests"
           tabindex="0"
         >
-          <div class="card shadow-sm">
-            <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-              <div>
-                <h2 class="h5 mb-0">Human review · applicant requests</h2>
-                <p class="text-secondary small mb-0">
-                  Submitted from Explainability when a candidate disputes or questions an automated decision.
-                </p>
+          <div id="reviewRequestsApiMessage" class="alert alert-danger small d-none" role="alert"></div>
+          <div class="row g-3 align-items-start">
+            <div class="col-lg-9">
+              <div class="card shadow-sm">
+                <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                  <div>
+                    <h2 class="h5 mb-0">Reviewer workstation</h2>
+                    <p class="text-secondary small mb-0">
+                      Transparency tickets from applicants. Claim using your reviewer identity, then address or resolve
+                      with a final action.
+                    </p>
+                    <p id="reviewerWorkstationProfile" class="small mb-0 mt-2">
+                      <span class="text-secondary">Reviewer profile:</span>
+                      <span id="reviewerWorkstationProfileBody">Select yourself in the list to load certification and
+                        attribute.</span>
+                    </p>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                      <label class="small mb-0 text-secondary" for="reviewReviewerSelect">Claim as reviewer</label>
+                      <select
+                        id="reviewReviewerSelect"
+                        class="form-select form-select-sm"
+                        style="min-width: 14rem"
+                        aria-label="Select reviewer when claiming a request"
+                      ></select>
+                    </div>
+                    <span id="reviewRequestsOpenCount" class="badge text-bg-warning text-dark">0 open</span>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover table-sm align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th scope="col">Ticket</th>
+                        <th scope="col">Applicant</th>
+                        <th scope="col">Fairness</th>
+                        <th scope="col">Suggested specialist</th>
+                        <th scope="col">Source</th>
+                        <th scope="col">Decision ID</th>
+                        <th scope="col">Reason</th>
+                        <th scope="col">Submitted</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Reviewer</th>
+                        <th scope="col" class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="reviewRequestsTableBody">
+                      <tr>
+                        <td colspan="11" class="text-secondary small">Loading review requests…</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="card-footer bg-white small text-secondary">
+                  Claim when status is Pending or Escalated. Address logs a note. Resolve records final action
+                  (Upheld, Overturned, or Escalate to admin queue).
+                </div>
               </div>
-              <span class="badge text-bg-warning text-dark">3 open</span>
             </div>
-            <div class="table-responsive">
-              <table class="table table-hover table-sm align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th scope="col">Ticket</th>
-                    <th scope="col">Applicant</th>
-                    <th scope="col">Decision ID</th>
-                    <th scope="col">Reason</th>
-                    <th scope="col">Submitted (UTC)</th>
-                    <th scope="col">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><code>HR-1201</code></td>
-                    <td>Eli Navarro</td>
-                    <td><code>dec-20260407-88f1</code></td>
-                    <td>Seems incorrect / unfair</td>
-                    <td>2026-04-07 16:40</td>
-                    <td><span class="badge text-bg-warning text-dark">Pending</span></td>
-                  </tr>
-                  <tr>
-                    <td><code>HR-1198</code></td>
-                    <td>Taylor Brooks</td>
-                    <td><code>dec-20260406-31c0</code></td>
-                    <td>Missing context in explanation</td>
-                    <td>2026-04-06 11:05</td>
-                    <td><span class="badge text-bg-info">In review</span></td>
-                  </tr>
-                  <tr>
-                    <td><code>HR-1192</code></td>
-                    <td>Maya Chen</td>
-                    <td><code>dec-20260405-09aa</code></td>
-                    <td>Other</td>
-                    <td>2026-04-05 22:18</td>
-                    <td><span class="badge text-bg-secondary">Queued · compliance</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="card-footer bg-white small text-secondary">
-              Assignments and resolution are logged to the audit trail (Auditor/Admin). Demo: actions disabled.
+            <div class="col-lg-3">
+              <div
+                class="card shadow-sm border border-teal-tint bg-white"
+                title="Verify algorithm outputs against corporate scoring criteria before you close a ticket."
+              >
+                <div class="card-header bg-light py-2 small fw-semibold d-flex align-items-center gap-2">
+                  <i class="bi bi-info-circle text-primary" aria-hidden="true"></i>
+                  Reviewer instructions
+                </div>
+                <div class="card-body small">
+                  <p class="mb-2">
+                    Your role is to verify whether the <strong>algorithm</strong> (decision factors shown in Resolve)
+                    aligned with <strong>corporate policy</strong> (scoring criteria and benchmarks for the role).
+                  </p>
+                  <p class="mb-0 text-secondary">
+                    Compare required skills and experience to the candidate’s factor scores. Use final actions only after
+                    that check.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -809,7 +718,7 @@
           <div class="card shadow-sm">
             <div class="card-header bg-white py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
               <span class="fw-semibold">People &amp; access</span>
-              <span class="text-secondary small">Demo directory — 8 records</span>
+              <span class="text-secondary small" id="directoryHeaderHint">Loading…</span>
             </div>
             <div class="table-responsive">
               <table class="table table-hover table-sm align-middle mb-0">
@@ -824,67 +733,14 @@
                 </thead>
                 <tbody id="directoryTableBody">
                   <tr>
-                    <td>Maya Chen</td>
-                    <td><span class="badge text-bg-primary">Seeker</span></td>
-                    <td>—</td>
-                    <td>maya.chen@example.com</td>
-                    <td>2026-04-08 13:22</td>
-                  </tr>
-                  <tr>
-                    <td>Jordan Lee</td>
-                    <td><span class="badge text-bg-info text-dark">Recruiter</span></td>
-                    <td>Acme Corp</td>
-                    <td>j.lee@acme.example</td>
-                    <td>2026-04-08 14:05</td>
-                  </tr>
-                  <tr>
-                    <td>Sam Rivera</td>
-                    <td><span class="badge text-bg-dark">Auditor</span></td>
-                    <td>Global compliance</td>
-                    <td>s.rivera@example.com</td>
-                    <td>2026-04-08 11:58</td>
-                  </tr>
-                  <tr>
-                    <td>Ravi Patel</td>
-                    <td><span class="badge text-bg-secondary">Admin</span></td>
-                    <td>Platform</td>
-                    <td>r.patel@example.com</td>
-                    <td>2026-04-08 07:10</td>
-                  </tr>
-                  <tr>
-                    <td>Amina Okonkwo</td>
-                    <td><span class="badge text-bg-info text-dark">Recruiter</span></td>
-                    <td>Harbor Health</td>
-                    <td>a.okonkwo@harbor.example</td>
-                    <td>2026-04-07 18:44</td>
-                  </tr>
-                  <tr>
-                    <td>Eli Navarro</td>
-                    <td><span class="badge text-bg-primary">Seeker</span></td>
-                    <td>—</td>
-                    <td>e.navarro@example.com</td>
-                    <td>2026-04-06 09:12</td>
-                  </tr>
-                  <tr>
-                    <td>Taylor Brooks</td>
-                    <td><span class="badge text-bg-primary">Seeker</span></td>
-                    <td>—</td>
-                    <td>t.brooks@example.com</td>
-                    <td>2026-04-05 22:01</td>
-                  </tr>
-                  <tr>
-                    <td>Chris Vance</td>
-                    <td><span class="badge text-bg-info text-dark">Recruiter</span></td>
-                    <td>StaffRight Agency</td>
-                    <td>c.vance@staffright.example</td>
-                    <td>2026-04-08 08:33</td>
+                    <td colspan="5" class="text-secondary small">Select this tab to load the directory.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
           <p class="text-secondary small mt-3 mb-0 data-role-hint" data-show-for="auditor admin">
-            Auditors may export this directory for access reviews (demo: export disabled).
+            Directory export is not enabled in this build.
           </p>
         </section>
 
@@ -898,7 +754,7 @@
           <div class="card shadow-sm mb-3 data-role-hint" data-show-for="seeker">
             <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
               <span class="fw-semibold">Decisions affecting your matches</span>
-              <span class="small text-secondary">Account u-104 · synthetic</span>
+              <span class="small text-secondary" id="seekerDecisionsHeaderMeta">—</span>
             </div>
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
@@ -911,36 +767,24 @@
                     <th scope="col">Policy</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="seekerDecisionsTableBody">
                   <tr>
-                    <td><code>dec-20260408-14a2</code></td>
-                    <td>Job match</td>
-                    <td>feed · Nimbus · Sr Backend</td>
-                    <td>0.91</td>
-                    <td>job-matching v2026.04</td>
-                  </tr>
-                  <tr>
-                    <td><code>dec-20260408-14a3</code></td>
-                    <td>Job match</td>
-                    <td>feed · Harbor · Platform Eng II</td>
-                    <td>0.87</td>
-                    <td>job-matching v2026.04</td>
-                  </tr>
-                  <tr>
-                    <td><code>dec-20260407-22c1</code></td>
-                    <td>Eligibility</td>
-                    <td>Copperlane · work auth check</td>
-                    <td>pass</td>
-                    <td>eligibility v2025.11</td>
+                    <td colspan="5" class="text-secondary small">Select this tab to load your decision history.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
           <div class="card shadow-sm mb-3 data-role-hint" data-show-for="recruiter auditor admin">
-            <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-              <span class="fw-semibold">Recent automated decisions</span>
-              <span class="small text-secondary">Last 48 hours · synthetic</span>
+            <div class="card-header bg-white py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <span class="fw-semibold">User ↔ decision factor links</span>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <label class="small mb-0 text-secondary" for="decisionsAlgoFilter">Filter by algorithm</label>
+                <select id="decisionsAlgoFilter" class="form-select form-select-sm" style="min-width: 12rem" aria-label="Filter decisions by algorithm model">
+                  <option value="">All algorithms</option>
+                </select>
+              </div>
+              <span class="small text-secondary ms-auto" id="recruiterDecisionsHeaderMeta">—</span>
             </div>
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
@@ -953,41 +797,9 @@
                     <th scope="col">Policy</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="recruiterDecisionsTableBody">
                   <tr>
-                    <td><code>dec-20260408-14a2</code></td>
-                    <td>Job match</td>
-                    <td>user u-104 · Nimbus · Sr Backend</td>
-                    <td>0.91</td>
-                    <td>job-matching v2026.04</td>
-                  </tr>
-                  <tr>
-                    <td><code>dec-20260408-13f0</code></td>
-                    <td>Candidate rank</td>
-                    <td>REQ-441 · 24 candidates</td>
-                    <td>top 0.88</td>
-                    <td>candidate-rank v2026.03</td>
-                  </tr>
-                  <tr>
-                    <td><code>dec-20260407-22c1</code></td>
-                    <td>Eligibility</td>
-                    <td>REQ-502 · work auth</td>
-                    <td>pass</td>
-                    <td>eligibility v2025.11</td>
-                  </tr>
-                  <tr>
-                    <td><code>dec-20260407-09aa</code></td>
-                    <td>Job match</td>
-                    <td>user u-088 · Harbor · Platform Eng</td>
-                    <td>0.85</td>
-                    <td>job-matching v2026.04</td>
-                  </tr>
-                  <tr>
-                    <td><code>dec-20260406-04d3</code></td>
-                    <td>Candidate rank</td>
-                    <td>REQ-388 · 41 candidates</td>
-                    <td>top 0.82</td>
-                    <td>candidate-rank v2026.03</td>
+                    <td colspan="5" class="text-secondary small">Select this tab to load the snapshot.</td>
                   </tr>
                 </tbody>
               </table>
@@ -996,18 +808,12 @@
           <div class="row g-3 data-role-hint" data-show-for="recruiter auditor admin">
             <div class="col-lg-6">
               <div class="card border-primary shadow-sm h-100">
-                <div class="card-header bg-primary text-white py-2 small">Live requisition · REQ-441</div>
+                <div class="card-header bg-primary text-white py-2 small">Shortlist preview (same API as Ranked talent)</div>
                 <div class="card-body">
-                  <h3 class="h6">Senior Backend Engineer — Remote US</h3>
-                  <p class="small text-secondary mb-2">Nimbus Analytics · Posted 2026-04-02 · 11 in interview</p>
-                  <p class="small fw-semibold mb-1">AI-ranked shortlist</p>
-                  <ol class="small mb-3 ps-3" id="mockRankedCandidates">
-                    <li>Jordan Park — fit <strong>0.91</strong> · skills match · prior fintech</li>
-                    <li>Samira Haddad — fit <strong>0.88</strong> · gap: distributed systems</li>
-                    <li>Devon Ellis — fit <strong>0.84</strong> · strong API design</li>
-                    <li>Wei Zhang — fit <strong>0.81</strong> · location: US</li>
-                    <li>Olivia Grant — fit <strong>0.79</strong> · referral boost applied</li>
-                  </ol>
+                  <h3 class="h6">Top candidates</h3>
+                  <p class="small text-secondary mb-2">Loaded when you open this tab (recruiter/admin).</p>
+                  <p class="small fw-semibold mb-1">Top of the same list as Ranked talent</p>
+                  <ol class="small mb-3 ps-3" id="mockRankedCandidates"></ol>
                   <button type="button" class="btn btn-sm btn-outline-primary" id="btnLogRankView">
                     <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Log ranking viewed
                   </button>
@@ -1066,9 +872,7 @@
               <tbody id="auditTableBody"></tbody>
             </table>
           </div>
-          <p class="small text-secondary mt-2 mb-0">
-            Append-only store · retention 7y · demo data only.
-          </p>
+          <p class="small text-secondary mt-2 mb-0">Immutable audit trail for compliance review.</p>
         </section>
 
         <section
@@ -1081,7 +885,7 @@
           <div class="row g-3 data-role-hint" data-show-for="recruiter auditor admin">
             <div class="col-lg-6">
               <div class="card shadow-sm h-100">
-                <div class="card-header bg-white py-2 fw-semibold">Cohort parity · REQ-441 (sample)</div>
+                <div class="card-header bg-white py-2 fw-semibold">Cohort parity</div>
                 <div class="card-body">
                   <div class="table-responsive">
                     <table class="table table-sm mb-0">
@@ -1092,19 +896,9 @@
                           <th scope="col" class="text-end">Rate</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody id="fairnessParityBody">
                         <tr>
-                          <td>Referral</td>
-                          <td class="text-end">18%</td>
-                          <td class="text-end">0.31</td>
-                        </tr>
-                        <tr>
-                          <td>Organic</td>
-                          <td class="text-end">82%</td>
-                          <td class="text-end">0.24</td>
-                        </tr>
-                        <tr>
-                          <td colspan="3" class="text-warning small">Within tolerance · monitor weekly</td>
+                          <td colspan="3" class="text-secondary small">No cohort disparity data to display.</td>
                         </tr>
                       </tbody>
                     </table>
@@ -1115,12 +909,11 @@
             <div class="col-lg-6">
               <div class="card shadow-sm h-100">
                 <div class="card-body">
-                  <h2 class="h6">Active controls</h2>
-                  <ul class="small mb-0">
-                    <li>Drift detection on embedding space · last run 2026-04-08 06:00 UTC</li>
-                    <li>Blinded names in first-pass ranking · opt-in reveal logged</li>
-                    <li>Template-only “why ranked” for employers</li>
-                  </ul>
+                  <h2 class="h6">Fairness monitoring</h2>
+                  <p class="small text-secondary mb-0">
+                    Review Requests highlights low impact ratios; expand this panel when cohort analytics are
+                    available.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1134,46 +927,120 @@
           aria-labelledby="tab-transparency"
           tabindex="0"
         >
-          <div class="row g-3">
+          <div class="row g-3 mb-2 data-role-hint" data-show-for="seeker">
+            <div class="col-12">
+              <div class="alert alert-info border-info py-2 px-3 small mb-0" role="status">
+                <strong>How to use this page:</strong> This tab allows applicants to understand our AI models (library,
+                policy rules, and model comparison for recruiters) and submit a formal dispute if they feel a decision
+                was incorrect.
+              </div>
+            </div>
+          </div>
+          <div class="row g-3 data-role-hint" data-show-for="recruiter admin">
+            <div class="col-12">
+              <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                  <h2 class="h5 mb-1">Library of active algorithms</h2>
+                  <p class="text-secondary small mb-0">Models in production for ranking and matching.</p>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover table-sm align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th scope="col">Model</th>
+                        <th scope="col">Vendor</th>
+                        <th scope="col">Version</th>
+                        <th scope="col">Last audit date</th>
+                      </tr>
+                    </thead>
+                    <tbody id="algorithmsLibraryBody">
+                      <tr>
+                        <td colspan="4" class="text-secondary small">Select this tab to load algorithms.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white py-3">
+                  <h2 class="h5 mb-1">Model comparison</h2>
+                  <p class="text-secondary small mb-0">
+                    Mean impact score per model (higher average = stricter weighting on recorded factors in this dataset).
+                  </p>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover table-sm align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th scope="col">Model</th>
+                        <th scope="col" class="text-end">Factors (n)</th>
+                        <th scope="col" class="text-end">Avg impact</th>
+                        <th scope="col" class="text-end">Min</th>
+                        <th scope="col" class="text-end">Max</th>
+                      </tr>
+                    </thead>
+                    <tbody id="modelComparisonBody">
+                      <tr>
+                        <td colspan="5" class="text-secondary small">Select this tab to load model comparison.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                  <h2 class="h5 mb-1">Policy guide</h2>
+                  <p class="text-secondary small mb-0">Scoring rules tied to open roles.</p>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover table-sm align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th scope="col">Role / title</th>
+                        <th scope="col">Required skills</th>
+                        <th scope="col" class="text-end">Min. experience (yrs)</th>
+                      </tr>
+                    </thead>
+                    <tbody id="policyGuideTableBody">
+                      <tr>
+                        <td colspan="3" class="text-secondary small">Select this tab to load policy rules.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row g-3 data-role-hint" data-show-for="seeker">
             <div class="col-lg-6">
               <div class="card shadow-sm h-100">
                 <div class="card-body">
-                  <h2 class="h6">Explanation you can show users</h2>
-                  <p class="small mb-2">
-                    Factors are grouped; no raw model weights. Example for job <code>dec-20260408-14a2</code>:
+                  <h2 class="h6">What we can share</h2>
+                  <p class="small mb-2 text-secondary" id="transparencyExplainSample">
+                    Your transparency requests and notices appear here.
                   </p>
-                  <div class="alert alert-light border small mb-0 font-monospace">
-                    Skills overlap (Python, REST), location = Remote US, recency 3d, employer boost
-                    none. Policy job-matching v2026.04. Template em-geo-skills-01.
-                  </div>
                 </div>
               </div>
             </div>
             <div class="col-lg-6">
               <div class="card shadow-sm h-100">
                 <div class="card-body">
-                  <h2 class="h6">Your recent notices</h2>
-                  <ul class="small mb-0 list-unstyled">
-                    <li class="mb-2 border-bottom pb-2">
-                      <strong>2026-04-08</strong> — Job “Senior Backend” boosted for skills match
-                      <span class="text-secondary">· dec-20260408-14a2</span>
-                    </li>
-                    <li class="mb-2 border-bottom pb-2">
-                      <strong>2026-04-07</strong> — Application status: interview scheduled (manual)
-                    </li>
-                    <li>
-                      <strong>2026-04-06</strong> — Profile strength updated after certification added
-                    </li>
+                  <h2 class="h6">Your transparency requests</h2>
+                  <ul class="small mb-0 list-unstyled" id="transparencyNoticesList">
+                    <li class="text-secondary">Select this tab to load your requests.</li>
                   </ul>
                 </div>
               </div>
             </div>
           </div>
-          <div class="card shadow-sm mt-3 data-role-hint" data-show-for="seeker recruiter admin">
+          <div class="card shadow-sm mt-3 data-role-hint" data-show-for="seeker">
             <div class="card-body">
-              <h2 class="h6">Request human review</h2>
+              <h2 class="h6">Submit Formal Dispute (Applicant View)</h2>
               <p class="text-secondary small">
-                Ticket goes to compliance; decision ID links to audit without exposing proprietary prompts.
+                Creates a <strong>transparency_portal</strong> ticket and linked <strong>user_appeals</strong> record for
+                recruiter review. Use the decision ID from your ranking or explainability context.
               </p>
               <form id="formHumanReview" class="row g-2">
                 <div class="col-md-4">
@@ -1183,7 +1050,7 @@
                     class="form-control form-control-sm"
                     id="reviewDecisionId"
                     name="decisionId"
-                    placeholder="dec-20260408-14a2"
+                    placeholder="e.g. factor-12 or criteria-3"
                     autocomplete="off"
                   />
                 </div>
@@ -1196,7 +1063,7 @@
                   </select>
                 </div>
                 <div class="col-12">
-                  <label class="form-label small mb-0" for="reviewNotes">Notes (optional)</label>
+                  <label class="form-label small mb-0" for="reviewNotes">Dispute details (optional)</label>
                   <textarea
                     class="form-control form-control-sm"
                     id="reviewNotes"
@@ -1206,7 +1073,7 @@
                 </div>
                 <div class="col-12">
                   <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-send me-1" aria-hidden="true"></i>Submit request
+                    <i class="bi bi-send me-1" aria-hidden="true"></i>Submit formal dispute
                   </button>
                 </div>
               </form>
@@ -1224,15 +1091,12 @@
         >
           <div class="card shadow-sm">
             <div class="card-body">
-              <h2 class="h5">About this demo</h2>
+              <h2 class="h5">About HireMatchAI</h2>
               <p class="mb-2">
-                Static prototype for role-based hiring workflows, AI-assisted ranking, audit logging, and
-                explainability. Roles include job seekers, recruiters, compliance auditors, and platform
-                administrators.
+                Hiring workflow UI with role-based access: applicants, recruiters, auditors, and admins. Data is loaded
+                from your configured API and database.
               </p>
-              <p class="small text-secondary mb-0">
-                Synthetic data only; sign-in and search are non-functional.
-              </p>
+              <p class="small text-secondary mb-0">Use your work email and password to sign in.</p>
             </div>
           </div>
         </section>
@@ -1241,10 +1105,165 @@
 
     <footer class="border-top bg-white py-3 mt-auto small text-secondary">
       <div class="container d-flex flex-wrap justify-content-between gap-2">
-        <span>HireMatchAI · Governance demo</span>
-        <span>© 2026 · All metrics fictional</span>
+        <span>HireMatchAI · Governance prototype</span>
+        <span>© 2026</span>
       </div>
     </footer>
+    </div>
+
+    <div
+      class="modal fade"
+      id="modalDecisionFactors"
+      tabindex="-1"
+      aria-labelledby="modalDecisionFactorsLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="modalDecisionFactorsLabel">AI decision factors · benchmarks</h2>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-secondary mb-2" id="modalDecisionFactorsSubtitle"></p>
+            <div id="modalDecisionFactorsLoading" class="small text-secondary">Loading…</div>
+            <div id="modalDecisionFactorsError" class="alert alert-danger small d-none" role="alert"></div>
+            <div id="modalDecisionFactorsContent" class="d-none"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="modalResolveReview"
+      tabindex="-1"
+      aria-labelledby="modalResolveReviewLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="modalResolveReviewLabel">Final Human Determination</h2>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-secondary mb-3" id="modalResolveReviewIntro">
+              Compare algorithm outputs to corporate job requirements, then record a justification before you resolve.
+            </p>
+            <input type="hidden" id="resolveReviewRequestId" value="" />
+            <input type="hidden" id="resolveApplicantUserId" value="" />
+            <div id="modalResolveContextLoading" class="small text-secondary mb-3">Loading review context…</div>
+            <div class="mb-3 d-none" id="modalResolveContextBlocks">
+              <div class="row g-3">
+                <div class="col-lg-6">
+                  <h3 class="h6 mb-2">Candidate · AI decision factors</h3>
+                  <p class="small text-muted mb-2">Per-factor impact scores from deployed models.</p>
+                  <div id="modalResolveFactorsError" class="alert alert-warning small d-none mb-2" role="alert"></div>
+                  <div id="modalResolveFactorsContent" class="border rounded p-2 bg-light bg-opacity-50"></div>
+                </div>
+                <div class="col-lg-6">
+                  <h3 class="h6 mb-2">Job · scoring criteria (requirements)</h3>
+                  <p class="small text-muted mb-2">Policy rules linked via algorithm benchmarks for this candidate.</p>
+                  <div id="modalResolvePolicyError" class="alert alert-warning small d-none mb-2" role="alert"></div>
+                  <div id="modalResolvePolicyContent" class="border rounded p-2 bg-light bg-opacity-50"></div>
+                </div>
+              </div>
+              <div class="mt-3 d-none" id="modalResolvePolicyComparisonWrap">
+                <div class="border border-secondary rounded p-2 bg-white">
+                  <h3 class="h6 mb-2">Policy comparison</h3>
+                  <p class="small text-muted mb-2">
+                    Policy text vs. candidate signals (name, role, factor labels). Missing skill tokens from
+                    <code>scoring_criteria.required_skills</code> are highlighted — a common driver of low AI scores.
+                  </p>
+                  <div id="modalResolvePolicyComparisonContent" class="small"></div>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold mb-1" for="resolveHumanJustification"
+                >Human justification <span class="text-danger">*</span></label
+              >
+              <textarea
+                id="resolveHumanJustification"
+                class="form-control form-control-sm"
+                rows="4"
+                maxlength="4000"
+                placeholder="Required: explain how you verified AI factors against policy (stored on the transparency record)."
+                aria-required="true"
+              ></textarea>
+              <div class="form-text">The Resolve action stays disabled until this field is non-empty.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold mb-1" for="resolveFinalAction">Final action</label>
+              <select id="resolveFinalAction" class="form-select form-select-sm">
+                <option value="Upheld">Upheld — AI decision stands</option>
+                <option value="Overturned">Overturned — Human intervention required to move candidate forward</option>
+                <option value="Escalate">Escalate — Send to Admin for deeper audit (returns to queue)</option>
+              </select>
+            </div>
+            <div id="modalResolveReviewError" class="alert alert-danger small d-none" role="alert"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnSubmitFinalResolution" disabled>
+              Resolve
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="modalAddressReview"
+      tabindex="-1"
+      aria-labelledby="modalAddressReviewLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="modalAddressReviewLabel">Address request</h2>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-secondary mb-2">Log your response for the applicant (short note, audit trail).</p>
+            <input type="hidden" id="addressReviewRequestId" value="" />
+            <label class="form-label small mb-1" for="addressReviewSummary">Response summary</label>
+            <textarea
+              id="addressReviewSummary"
+              class="form-control form-control-sm"
+              rows="3"
+              maxlength="200"
+              placeholder="e.g. Explained ranking factors via email"
+            ></textarea>
+            <div id="modalAddressReviewError" class="alert alert-danger small d-none mt-2 mb-0" role="alert"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnSubmitAddressReview">Save to audit log</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div
