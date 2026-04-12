@@ -120,3 +120,24 @@ footer.border-top {
   border-color: rgba(13, 148, 136, 0.15) !important;
   background: linear-gradient(180deg, #fff 0%, #f8fafc 100%) !important;
 }
+
+/* Fairness cohort rate — pulse when below parity threshold (see loadFairnessConsole) */
+@keyframes hm-fairness-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.42;
+  }
+}
+
+.hm-fairness-pulse {
+  animation: hm-fairness-pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-fairness-pulse {
+    animation: none;
+  }
+}

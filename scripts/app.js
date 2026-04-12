@@ -3,10 +3,20 @@
  */
 
 const SESSION_KEY = "hirematchai_session_v1";
-const API_BASE_URL =
-  typeof window.__API_BASE__ === "string" && window.__API_BASE__
-    ? window.__API_BASE__
-    : "http://localhost:5113";
+const API_BASE_URL = (() => {
+  if (typeof window !== "undefined" && typeof window.__API_BASE__ === "string" && window.__API_BASE__) {
+    return window.__API_BASE__;
+  }
+  // Same host when UI is served from the API (e.g. http://localhost:5113/)
+  if (
+    typeof window !== "undefined" &&
+    window.location?.protocol?.startsWith("http") &&
+    (window.location.port === "5113" || window.location.port === "7226")
+  ) {
+    return "";
+  }
+  return "http://localhost:5113";
+})();
 
 /** Normalized rows for the audit log table (from GET /api/audit-logs). */
 let auditLogRows = [];
@@ -19,12 +29,15 @@ let jobsLoaded = false;
 let profileLoaded = false;
 let seekerDecisionsLoaded = false;
 let recruiterDecisionsLoaded = false;
+let fairnessLoaded = false;
 let transparencyLoaded = false;
 let decisionsRankPreviewLoaded = false;
 let explainabilityRecruiterLoaded = false;
 
 /** Latest GET /api/recruiter/decision-snapshot rows for client-side algorithm filter. */
 let recruiterDecisionsRows = [];
+/** "" | "score-desc" | "score-asc" — toggled by clicking the Score column header. */
+let recruiterDecisionsSortMode = "";
 
 const ROLE_BANNER = {
   seeker:
@@ -301,7 +314,10 @@ async function loadDashboardMetrics(email) {
 
     setMetricText("metricRecOpenReq", m.scoringCriteriaCount);
     setMetricText("metricRecCandidates", m.seekerRoleCount);
-    setMetricText("metricRecMedian", "—");
+    setMetricText(
+      "metricRecMedian",
+      m.recruiter?.medianDaysInStage != null ? `${Number(m.recruiter.medianDaysInStage).toFixed(1)} days` : "—"
+    );
     setMetricText("metricRecRuns", m.auditLogs7d);
 
     setMetricText("metricAudAudit", m.auditLogs24h);
@@ -403,34 +419,73 @@ async function loadSeekerDecisions(email) {
   }
   try {
     const rows = await fetchData(`/api/user/decision-history?email=${encodeURIComponent(email)}`);
-    body.replaceChildren();
     if (!Array.isArray(rows) || !rows.length) {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        '<td colspan="5" class="text-secondary small">No decision factors linked to your account.</td>';
-      body.appendChild(tr);
+      body.innerHTML = twDecisionsEmptyLine("No factors linked to your account.");
       seekerDecisionsLoaded = true;
       return;
     }
-    for (const r of rows) {
-      const sc = r.score != null ? String(r.score) : "—";
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><code>${escapeHtml(r.decisionId)}</code></td>
-        <td>${escapeHtml(r.type)}</td>
-        <td>${escapeHtml(r.subject)}</td>
-        <td>${escapeHtml(sc)}</td>
-        <td>${escapeHtml(r.policy)}</td>
-      `;
-      body.appendChild(tr);
-    }
+    body.innerHTML = rows.map((r) => twDecisionDashboardCard(r)).join("");
     seekerDecisionsLoaded = true;
   } catch (e) {
     console.error("decision history:", e);
-    body.replaceChildren();
-    const tr = document.createElement("tr");
-    tr.innerHTML = '<td colspan="5" class="text-secondary small">Could not load decisions.</td>';
-    body.appendChild(tr);
+    body.innerHTML = twDecisionsEmptyLine("Could not load decisions.");
+  }
+}
+
+function numericDecisionScore(row) {
+  const v = Number(row?.score);
+  return Number.isFinite(v) ? v : null;
+}
+
+function sortDecisionSnapshotRows(rows, sortKey) {
+  const list = [...rows];
+  if (sortKey === "score-desc") {
+    list.sort((a, b) => {
+      const sa = numericDecisionScore(a);
+      const sb = numericDecisionScore(b);
+      if (sa == null && sb == null) return String(a.decisionId ?? "").localeCompare(String(b.decisionId ?? ""));
+      if (sa == null) return 1;
+      if (sb == null) return -1;
+      if (sb !== sa) return sb - sa;
+      return String(a.decisionId ?? "").localeCompare(String(b.decisionId ?? ""));
+    });
+  } else if (sortKey === "score-asc") {
+    list.sort((a, b) => {
+      const sa = numericDecisionScore(a);
+      const sb = numericDecisionScore(b);
+      if (sa == null && sb == null) return String(a.decisionId ?? "").localeCompare(String(b.decisionId ?? ""));
+      if (sa == null) return 1;
+      if (sb == null) return -1;
+      if (sa !== sb) return sa - sb;
+      return String(a.decisionId ?? "").localeCompare(String(b.decisionId ?? ""));
+    });
+  }
+  return list;
+}
+
+function cycleRecruiterDecisionsScoreSort() {
+  if (recruiterDecisionsSortMode === "") recruiterDecisionsSortMode = "score-desc";
+  else if (recruiterDecisionsSortMode === "score-desc") recruiterDecisionsSortMode = "score-asc";
+  else recruiterDecisionsSortMode = "";
+  renderRecruiterDecisionsTable();
+}
+
+function updateDecisionsScoreSortIndicator() {
+  const span = el("decisionsScoreSortIndicator");
+  const btn = el("btnSortDecisionsByScore");
+  if (span) {
+    span.textContent =
+      recruiterDecisionsSortMode === "score-desc" ? "↓" : recruiterDecisionsSortMode === "score-asc" ? "↑" : "";
+  }
+  if (btn) {
+    btn.setAttribute(
+      "aria-sort",
+      recruiterDecisionsSortMode === "score-desc"
+        ? "descending"
+        : recruiterDecisionsSortMode === "score-asc"
+          ? "ascending"
+          : "none"
+    );
   }
 }
 
@@ -444,7 +499,7 @@ function populateDecisionsAlgoFilter(rows) {
   sel.replaceChildren();
   const all = document.createElement("option");
   all.value = "";
-  all.textContent = "All algorithms";
+  all.textContent = "All models";
   sel.appendChild(all);
   for (const m of models) {
     const opt = document.createElement("option");
@@ -458,46 +513,38 @@ function populateDecisionsAlgoFilter(rows) {
 function renderRecruiterDecisionsTable() {
   const body = el("recruiterDecisionsTableBody");
   const meta = el("recruiterDecisionsHeaderMeta");
+  const head = el("recruiterDecisionsColumnHead");
   if (!body) return;
   const sel = el("decisionsAlgoFilter");
   const filterAlgo = sel && sel.value ? sel.value : "";
-  const rows = filterAlgo
+  const sortKey = recruiterDecisionsSortMode || "";
+  const filtered = filterAlgo
     ? recruiterDecisionsRows.filter((r) => String(r.modelName || "") === filterAlgo)
     : recruiterDecisionsRows;
+  const rows = sortDecisionSnapshotRows(filtered, sortKey);
 
-  body.replaceChildren();
   if (meta) {
     meta.textContent =
-      filterAlgo && rows.length === 0
-        ? "No rows for this filter"
-        : `${rows.length} row(s) · snapshot (max 40)`;
+      filterAlgo && filtered.length === 0
+        ? "0 / filter"
+        : `${filtered.length}/40`;
   }
 
   if (!recruiterDecisionsRows.length) {
-    const tr = document.createElement("tr");
-    tr.innerHTML =
-      '<td colspan="5" class="text-secondary small">No user_decision_factors rows in the database.</td>';
-    body.appendChild(tr);
+    if (head) head.classList.add("d-none");
+    body.innerHTML = twDecisionsEmptyLine("No snapshot rows in DB.");
+    updateDecisionsScoreSortIndicator();
     return;
   }
-  if (!rows.length) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = '<td colspan="5" class="text-secondary small">No rows match this algorithm filter.</td>';
-    body.appendChild(tr);
+  if (!filtered.length) {
+    if (head) head.classList.add("d-none");
+    body.innerHTML = twDecisionsEmptyLine("Nothing for this model.");
+    updateDecisionsScoreSortIndicator();
     return;
   }
-  for (const r of rows) {
-    const sc = r.score != null ? String(r.score) : "—";
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><code>${escapeHtml(r.decisionId)}</code></td>
-      <td>${escapeHtml(r.type)}</td>
-      <td>${escapeHtml(r.subject)}</td>
-      <td>${escapeHtml(sc)}</td>
-      <td>${escapeHtml(r.policy)}</td>
-    `;
-    body.appendChild(tr);
-  }
+  if (head) head.classList.remove("d-none");
+  body.innerHTML = rows.map((r) => twDecisionDashboardCard(r)).join("");
+  updateDecisionsScoreSortIndicator();
 }
 
 async function loadRecruiterDecisions() {
@@ -508,24 +555,32 @@ async function loadRecruiterDecisions() {
   try {
     const rows = await fetchData("/api/recruiter/decision-snapshot");
     recruiterDecisionsRows = Array.isArray(rows) ? rows : [];
+    recruiterDecisionsSortMode = "";
     populateDecisionsAlgoFilter(recruiterDecisionsRows);
     renderRecruiterDecisionsTable();
     recruiterDecisionsLoaded = true;
   } catch (e) {
     console.error("decision snapshot:", e);
     recruiterDecisionsRows = [];
-    body.replaceChildren();
-    const tr = document.createElement("tr");
-    tr.innerHTML = '<td colspan="5" class="text-secondary small">Could not load decision snapshot.</td>';
-    body.appendChild(tr);
+    recruiterDecisionsSortMode = "";
+    const head = el("recruiterDecisionsColumnHead");
+    if (head) head.classList.add("d-none");
+    body.innerHTML = twDecisionsEmptyLine("Could not load snapshot.");
+    updateDecisionsScoreSortIndicator();
   }
 }
 
 function initDecisionsAlgoFilter() {
   const sel = el("decisionsAlgoFilter");
-  if (!sel || sel.dataset.bound === "1") return;
-  sel.dataset.bound = "1";
-  sel.addEventListener("change", () => renderRecruiterDecisionsTable());
+  if (sel && sel.dataset.bound !== "1") {
+    sel.dataset.bound = "1";
+    sel.addEventListener("change", () => renderRecruiterDecisionsTable());
+  }
+  const scoreBtn = el("btnSortDecisionsByScore");
+  if (scoreBtn && scoreBtn.dataset.bound !== "1") {
+    scoreBtn.dataset.bound = "1";
+    scoreBtn.addEventListener("click", () => cycleRecruiterDecisionsScoreSort());
+  }
 }
 
 async function loadTransparencyFeed(email) {
@@ -569,30 +624,75 @@ async function loadDecisionsRankPreview() {
   if (!ol) return;
   try {
     const rows = await fetchData("/api/recruiter/ranked-talent");
-    ol.replaceChildren();
     const top = (Array.isArray(rows) ? rows : []).slice(0, 5);
     if (!top.length) {
-      const li = document.createElement("li");
-      li.className = "text-secondary small";
-      li.textContent = "No seeker-role users in the database to rank.";
-      ol.appendChild(li);
+      ol.innerHTML = `<p class="tw-mb-0 tw-text-[11px] tw-text-zinc-500">No seekers to rank.</p>`;
       decisionsRankPreviewLoaded = true;
       return;
     }
-    for (const r of top) {
-      const fit = Number(r.aiFit || 0);
-      const li = document.createElement("li");
-      li.innerHTML = `${escapeHtml(r.candidateName || "?")} — fit <strong>${fit.toFixed(2)}</strong> · ${escapeHtml(r.signals || "")}`;
-      ol.appendChild(li);
-    }
+    ol.innerHTML = top
+      .map((r) => {
+        const fit = Number(r.aiFit || 0);
+        const bar = twDecisionMatchBar(fit, { compact: true });
+        return `<div class="tw-flex tw-items-center tw-gap-2 tw-rounded tw-bg-white tw-px-1.5 tw-py-0.5 tw-ring-1 tw-ring-zinc-200/70">
+          <span class="tw-min-w-0 tw-flex-1 tw-truncate tw-text-[11px] tw-text-zinc-800">${escapeHtml(r.candidateName || "?")}</span>
+          ${bar}
+        </div>`;
+      })
+      .join("");
     decisionsRankPreviewLoaded = true;
   } catch (e) {
     console.error("rank preview:", e);
-    ol.replaceChildren();
-    const li = document.createElement("li");
-    li.className = "text-secondary small";
-    li.textContent = "Could not load ranked preview.";
-    ol.appendChild(li);
+    ol.innerHTML = `<p class="tw-mb-0 tw-text-[11px] tw-text-red-600">Preview failed.</p>`;
+  }
+}
+
+async function loadFairnessConsole() {
+  const body = el("fairnessParityBody");
+  const note = el("fairnessSummaryNote");
+  const badgeWrap = el("fairnessBiasBadgeWrap");
+  if (!body) return;
+  const setBadgeHidden = (hidden) => {
+    if (!badgeWrap) return;
+    badgeWrap.classList.toggle("tw-hidden", hidden);
+    if (hidden) badgeWrap.innerHTML = "";
+  };
+  try {
+    const data = await fetchData("/api/fairness/summary");
+    const rows = Array.isArray(data?.cohortParity) ? data.cohortParity : [];
+    if (!rows.length) {
+      body.innerHTML = twFairnessEmptyMessage(
+        "No fairness ratios available yet. Generate decision activity first."
+      );
+      if (note) note.textContent = "No fairness baseline available yet.";
+      setBadgeHidden(true);
+      fairnessLoaded = true;
+      return;
+    }
+    const parityThreshold = 0.8;
+    body.innerHTML = rows.map((r) => twFairnessCohortCard(r, parityThreshold)).join("");
+    const flagged = rows.filter((r) => Number(r.selectionRate ?? 0) < parityThreshold).length;
+    if (badgeWrap) {
+      setBadgeHidden(false);
+      if (flagged > 0) {
+        badgeWrap.innerHTML = `<span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-red-600 tw-px-3 tw-py-1 tw-text-xs tw-font-bold tw-tracking-wide tw-text-white tw-shadow-md tw-animate-pulse" role="status">Bias Alert · ${flagged} cohort(s) below ${parityThreshold}</span>`;
+      } else {
+        badgeWrap.innerHTML = `<span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-emerald-100 tw-px-3 tw-py-1 tw-text-xs tw-font-semibold tw-text-emerald-900">Parity OK</span>`;
+      }
+    }
+    if (note) {
+      const minRate = Number(data?.minSelectionRate ?? 0);
+      note.textContent =
+        flagged > 0
+          ? `${flagged} cohort(s) under ${parityThreshold.toFixed(2)} selection-rate parity. Lowest rate ${minRate.toFixed(2)}.`
+          : `All cohorts at or above ${parityThreshold.toFixed(2)} rate. Lowest rate ${minRate.toFixed(2)}.`;
+    }
+    fairnessLoaded = true;
+  } catch (e) {
+    console.error("fairness summary:", e);
+    body.innerHTML = twFairnessEmptyMessage("Could not load fairness summary.");
+    if (note) note.textContent = "Could not load fairness summary.";
+    setBadgeHidden(true);
   }
 }
 
@@ -648,6 +748,19 @@ function initLazyDataTabs() {
       }
     });
   }
+  const fairnessTab = el("tab-fairness");
+  if (fairnessTab && fairnessTab.dataset.lazyBound !== "1") {
+    fairnessTab.dataset.lazyBound = "1";
+    fairnessTab.addEventListener("shown.bs.tab", () => {
+      const s = getSession();
+      if (
+        (s?.role === "recruiter" || s?.role === "auditor" || s?.role === "admin") &&
+        !fairnessLoaded
+      ) {
+        void loadFairnessConsole();
+      }
+    });
+  }
 }
 
 async function loadExplainabilityRecruiterContent() {
@@ -661,85 +774,50 @@ async function loadExplainabilityRecruiterContent() {
       fetchData("/api/scoring-criteria"),
       fetchData("/api/recruiter/model-impact-comparison"),
     ]);
-    algoBody.replaceChildren();
     const algList = Array.isArray(algorithms) ? algorithms : [];
     if (!algList.length) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = '<td colspan="4" class="text-secondary small">No algorithms on file.</td>';
-      algoBody.appendChild(tr);
+      algoBody.innerHTML = twFairnessEmptyMessage("No algorithms on file.");
     } else {
-      for (const a of [...algList].sort((x, y) => (x.algoId ?? 0) - (y.algoId ?? 0))) {
-        const tr = document.createElement("tr");
-        const dt = a.lastAuditDate != null ? String(a.lastAuditDate).slice(0, 10) : "—";
-        tr.innerHTML = `
-          <td>${escapeHtml(a.modelName || "—")}</td>
-          <td>${escapeHtml(a.vendor || "—")}</td>
-          <td>${escapeHtml(a.version || "—")}</td>
-          <td>${escapeHtml(dt)}</td>`;
-        algoBody.appendChild(tr);
-      }
+      algoBody.innerHTML = [...algList]
+        .sort((x, y) => (x.algoId ?? 0) - (y.algoId ?? 0))
+        .map((a) => twAlgorithmLibraryCard(a))
+        .join("");
     }
-    policyBody.replaceChildren();
+
     const crList = Array.isArray(criteria) ? criteria : [];
     if (!crList.length) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = '<td colspan="3" class="text-secondary small">No policy rules on file.</td>';
-      policyBody.appendChild(tr);
+      policyBody.innerHTML = twFairnessEmptyMessage("No policy rules on file.");
     } else {
-      for (const c of [...crList].sort((x, y) => (x.criteriaId ?? 0) - (y.criteriaId ?? 0))) {
-        const tr = document.createElement("tr");
-        const minY = c.minExperience != null ? String(c.minExperience) : "—";
-        tr.innerHTML = `
-          <td>${escapeHtml(c.jobTitle || "—")}</td>
-          <td class="small">${escapeHtml(c.requiredSkills || "—")}</td>
-          <td class="text-end">${escapeHtml(minY)}</td>`;
-        policyBody.appendChild(tr);
-      }
+      policyBody.innerHTML = [...crList]
+        .sort((x, y) => (x.criteriaId ?? 0) - (y.criteriaId ?? 0))
+        .map((c) => twPolicyGuideCard(c))
+        .join("");
     }
 
     if (modelCmpBody) {
-      modelCmpBody.replaceChildren();
       const comp = Array.isArray(comparison) ? comparison : [];
       if (!comp.length) {
-        const tr = document.createElement("tr");
-        tr.innerHTML =
-          '<td colspan="5" class="text-secondary small">No decision factors loaded for comparison.</td>';
-        modelCmpBody.appendChild(tr);
+        modelCmpBody.innerHTML = twFairnessEmptyMessage("No decision factors loaded for comparison.");
       } else {
         const sorted = [...comp].sort((a, b) => Number(b.avgImpact || 0) - Number(a.avgImpact || 0));
+        const nums = [];
         for (const row of sorted) {
-          const tr = document.createElement("tr");
-          const avg = Number(row.avgImpact ?? 0);
-          const mn = Number(row.minImpact ?? 0);
-          const mx = Number(row.maxImpact ?? 0);
-          tr.innerHTML = `
-            <td>${escapeHtml(row.modelName || "—")}</td>
-            <td class="text-end">${escapeHtml(String(row.factorCount ?? "—"))}</td>
-            <td class="text-end fw-semibold">${escapeHtml(avg.toFixed(2))}</td>
-            <td class="text-end">${escapeHtml(mn.toFixed(2))}</td>
-            <td class="text-end">${escapeHtml(mx.toFixed(2))}</td>`;
-          modelCmpBody.appendChild(tr);
+          nums.push(Number(row.avgImpact ?? 0), Number(row.minImpact ?? 0), Number(row.maxImpact ?? 0));
         }
+        const lo = Math.min(...nums);
+        const hi = Math.max(...nums);
+        modelCmpBody.innerHTML = sorted.map((row) => twModelComparisonCard(row, lo, hi)).join("");
       }
     }
 
     explainabilityRecruiterLoaded = true;
   } catch (e) {
     console.error("explainability (recruiter):", e);
-    algoBody.replaceChildren();
-    policyBody.replaceChildren();
+    algoBody.innerHTML = twFairnessEmptyMessage("Could not load algorithms.");
+    policyBody.innerHTML = twFairnessEmptyMessage("Could not load policy rules.");
     if (modelCmpBody) {
-      modelCmpBody.replaceChildren();
-      const tr0 = document.createElement("tr");
-      tr0.innerHTML = '<td colspan="5" class="text-secondary small">Could not load model comparison.</td>';
-      modelCmpBody.appendChild(tr0);
+      modelCmpBody.innerHTML = twFairnessEmptyMessage("Could not load model comparison.");
     }
-    const tr = document.createElement("tr");
-    tr.innerHTML = '<td colspan="4" class="text-secondary small">Could not load algorithms.</td>';
-    algoBody.appendChild(tr);
-    const tr2 = document.createElement("tr");
-    tr2.innerHTML = '<td colspan="3" class="text-secondary small">Could not load policy rules.</td>';
-    policyBody.appendChild(tr2);
   }
 }
 
@@ -865,10 +943,249 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+/** Decisions tab: match bar — green &gt;0.9, yellow &gt;0.7, red otherwise (≤0.7). */
+function twDecisionMatchBar(score, opts = {}) {
+  const compact = Boolean(opts.compact);
+  const snapshot = Boolean(opts.snapshot);
+  const s = Number(score);
+  if (!Number.isFinite(s)) {
+    if (snapshot) {
+      return `<div class="tw-flex tw-w-full tw-min-w-0 tw-items-center tw-gap-2">
+        <div class="tw-min-w-0 tw-flex-1 tw-h-2.5 tw-overflow-hidden tw-rounded-full tw-bg-zinc-200/90" aria-hidden="true"></div>
+        <span class="tw-shrink-0 tw-text-sm tw-font-bold tw-tabular-nums tw-text-zinc-400">—</span>
+      </div>`;
+    }
+    return '<span class="tw-text-xs tw-text-zinc-400">—</span>';
+  }
+  const pct = Math.min(100, Math.max(0, Math.round(s * 100)));
+  let bar = "tw-bg-red-500";
+  if (s > 0.9) bar = "tw-bg-green-500";
+  else if (s > 0.7) bar = "tw-bg-yellow-400";
+  const h = compact && !snapshot ? "tw-h-1.5" : "tw-h-2.5";
+  const scoreCls = snapshot
+    ? "tw-shrink-0 tw-text-sm tw-font-bold tw-tabular-nums tw-text-zinc-800"
+    : "tw-shrink-0 tw-text-xs tw-font-bold tw-tabular-nums tw-text-zinc-800";
+  const inner = `<div class="tw-min-w-0 tw-flex-1 ${h} tw-overflow-hidden tw-rounded-full tw-bg-zinc-200/90">
+      <div class="${bar} tw-h-full tw-rounded-full tw-transition-[width]" style="width:${pct}%"></div>
+    </div>
+    <span class="${scoreCls}">${s.toFixed(2)}</span>`;
+  if (compact) {
+    const wrapCls = snapshot
+      ? "tw-flex tw-w-full tw-min-w-0 tw-items-center tw-gap-2"
+      : "tw-flex tw-w-[6.5rem] tw-shrink-0 tw-items-center tw-gap-1.5 sm:tw-w-[7.5rem]";
+    return `<div class="${wrapCls}">${inner}</div>`;
+  }
+  return `<div class="tw-mt-2 tw-flex tw-min-w-0 tw-items-center tw-gap-3">
+    <span class="tw-shrink-0 tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wide tw-text-zinc-400">Match</span>
+    ${inner}
+  </div>`;
+}
+
+function splitDecisionSubjectLabel(subject) {
+  const s = String(subject ?? "").trim();
+  const sep = " · ";
+  const i = s.indexOf(sep);
+  if (i === -1) return { name: s, subtitle: "" };
+  return { name: s.slice(0, i).trim(), subtitle: s.slice(i + sep.length).trim() };
+}
+
+function twDecisionDashboardCard(row) {
+  const sc = row.score != null && row.score !== "" ? Number(row.score) : NaN;
+  const bar = twDecisionMatchBar(sc, { compact: true, snapshot: true });
+  const decisionId = row.decisionId != null ? String(row.decisionId) : "—";
+  const type = row.type != null ? String(row.type) : "—";
+  const subject = row.subject != null ? String(row.subject) : "—";
+  const policy = row.policy != null ? String(row.policy) : "—";
+  const tip = `${type} · Policy: ${policy}`;
+  const { name, subtitle } = splitDecisionSubjectLabel(subject);
+  const nameBlock =
+    subtitle.length > 0
+      ? `<div class="tw-flex tw-min-w-0 tw-flex-wrap tw-items-baseline tw-gap-x-1">
+          <span class="tw-truncate tw-text-sm tw-font-semibold tw-text-zinc-900 sm:tw-text-base">${escapeHtml(name)}</span>
+          <span class="tw-shrink-0 tw-text-xs tw-font-medium tw-text-zinc-500 sm:tw-text-sm">· ${escapeHtml(subtitle)}</span>
+        </div>`
+      : `<div class="tw-min-w-0"><span class="tw-block tw-truncate tw-text-sm tw-font-semibold tw-text-zinc-900 sm:tw-text-base">${escapeHtml(name)}</span></div>`;
+  return `<div class="tw-grid tw-grid-cols-[9rem_minmax(0,1fr)_7.5rem] tw-items-center tw-gap-x-3 tw-rounded tw-border tw-border-zinc-200/50 tw-bg-white tw-px-3 tw-py-1.5 hover:tw-border-zinc-300 sm:tw-grid-cols-[10rem_minmax(0,1fr)_8rem]" title="${escapeHtml(tip)}">
+    <code class="tw-min-w-0 tw-truncate tw-font-mono tw-text-xs tw-leading-snug tw-text-zinc-500 sm:tw-text-[13px]">${escapeHtml(decisionId)}</code>
+    <div class="tw-min-w-0">${nameBlock}</div>
+    <div class="tw-flex tw-min-w-0 tw-w-full tw-items-center tw-justify-end">${bar}</div>
+  </div>`;
+}
+
+function twImpactHeatStyle(val, lo, hi) {
+  const v = Number(val);
+  const t = hi === lo ? 0.5 : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
+  const hue = 25 + t * 105;
+  return `background:linear-gradient(145deg,hsla(${hue},72%,95%,1),hsla(${hue - 8},58%,88%,1));border-color:hsla(${hue - 15},40%,76%,0.9)`;
+}
+
+function twModelRangeStrip(lo, hi, minV, avgV, maxV) {
+  const span = hi - lo || 1;
+  const p = (x) => Math.max(0, Math.min(100, ((Number(x) - lo) / span) * 100));
+  const pm = p(minV);
+  const pa = p(avgV);
+  const px = p(maxV);
+  return `<div class="tw-relative tw-mt-3 tw-h-2.5 tw-overflow-hidden tw-rounded-full tw-border tw-border-zinc-200/80">
+    <div class="tw-absolute tw-inset-0 tw-bg-gradient-to-r tw-from-rose-200 tw-via-amber-200 tw-to-emerald-300"></div>
+    <div class="tw-absolute tw-bottom-0 tw-top-0 tw-w-0.5 tw-bg-zinc-800/70" style="left:${pm}%" title="Min"></div>
+    <div class="tw-absolute tw-bottom-0 tw-top-0 tw-w-0.5 tw-bg-zinc-900" style="left:${pa}%" title="Avg"></div>
+    <div class="tw-absolute tw-bottom-0 tw-top-0 tw-w-0.5 tw-bg-zinc-800/70" style="left:${px}%" title="Max"></div>
+  </div>
+  <div class="tw-mt-1 tw-flex tw-justify-between tw-text-[10px] tw-font-medium tw-text-zinc-500">
+    <span>min ${Number(minV).toFixed(2)}</span><span>avg ${Number(avgV).toFixed(2)}</span><span>max ${Number(maxV).toFixed(2)}</span>
+  </div>`;
+}
+
+function twFairnessCohortCard(r, parityThreshold) {
+  const selected = Number(r.selectedCount ?? 0);
+  const total = Number(r.totalCount ?? 0);
+  const rate = Number(r.selectionRate ?? 0);
+  const bias = rate < parityThreshold;
+  const selPct = total > 0 ? Math.round((selected / total) * 100) : 0;
+  return `<article class="tw-relative tw-overflow-hidden tw-rounded-2xl tw-border tw-p-4 tw-shadow-sm ${
+    bias
+      ? "tw-border-red-300 tw-bg-gradient-to-br tw-from-red-50 tw-to-white"
+      : "tw-border-emerald-200 tw-bg-gradient-to-br tw-from-emerald-50/90 tw-to-white"
+  }">
+    ${
+      bias
+        ? '<div class="tw-absolute tw-right-3 tw-top-3 tw-rounded-full tw-bg-red-600 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-tracking-wide tw-text-white tw-shadow-sm tw-animate-pulse">BIAS ALERT</div>'
+        : ""
+    }
+    <h3 class="tw-mb-1 tw-pr-24 tw-text-sm tw-font-bold tw-text-zinc-900">${escapeHtml(r.group || "Unknown")}</h3>
+    <p class="tw-mb-2 tw-text-xs tw-text-zinc-500">${escapeHtml(String(selected))} / ${escapeHtml(String(total))} selected (${escapeHtml(String(selPct))}%)</p>
+    <p class="tw-mb-0 tw-text-3xl tw-font-black tw-tabular-nums ${bias ? "tw-text-red-600" : "tw-text-emerald-700"}">${escapeHtml(rate.toFixed(2))}</p>
+    <p class="tw-mb-0 tw-mt-1 tw-text-[11px] tw-font-medium tw-text-zinc-500">Selection rate</p>
+  </article>`;
+}
+
+function twFairnessEmptyMessage(msg) {
+  return `<p class="tw-col-span-full tw-mb-0 tw-rounded-lg tw-border tw-border-dashed tw-border-zinc-200 tw-bg-zinc-50 tw-p-4 tw-text-sm tw-text-zinc-500">${escapeHtml(msg)}</p>`;
+}
+
+function twDecisionsEmptyLine(msg) {
+  return `<p class="tw-mb-0 tw-py-1 tw-text-xs tw-text-zinc-500">${escapeHtml(msg)}</p>`;
+}
+
+function twAlgorithmLibraryCard(a) {
+  const dt = a.lastAuditDate != null ? String(a.lastAuditDate).slice(0, 10) : "—";
+  return `<article class="tw-flex tw-h-full tw-flex-col tw-rounded-xl tw-border tw-border-zinc-200 tw-bg-white tw-p-4 tw-shadow-sm">
+    <h3 class="tw-mb-1 tw-text-sm tw-font-bold tw-text-zinc-900">${escapeHtml(a.modelName || "—")}</h3>
+    <p class="tw-mb-3 tw-text-xs tw-text-zinc-500">${escapeHtml(a.vendor || "—")} · v${escapeHtml(a.version || "—")}</p>
+    <p class="tw-mt-auto tw-mb-0 tw-text-xs tw-font-medium tw-text-zinc-600">Last audit <span class="tw-tabular-nums tw-text-zinc-800">${escapeHtml(dt)}</span></p>
+  </article>`;
+}
+
+function twPolicyGuideCard(c) {
+  const minY = c.minExperience != null ? String(c.minExperience) : "—";
+  return `<article class="tw-rounded-xl tw-border tw-border-zinc-200 tw-bg-white tw-p-4 tw-shadow-sm">
+    <h3 class="tw-mb-2 tw-text-sm tw-font-bold tw-text-zinc-900">${escapeHtml(c.jobTitle || "—")}</h3>
+    <p class="tw-mb-2 tw-text-xs tw-leading-relaxed tw-text-zinc-600">${escapeHtml(c.requiredSkills || "—")}</p>
+    <p class="tw-mb-0 tw-text-xs tw-font-semibold tw-text-teal-800">Min experience: <span class="tw-tabular-nums">${escapeHtml(minY)}</span> yrs</p>
+  </article>`;
+}
+
+function twModelComparisonCard(row, lo, hi) {
+  const avg = Number(row.avgImpact ?? 0);
+  const mn = Number(row.minImpact ?? 0);
+  const mx = Number(row.maxImpact ?? 0);
+  const strip = twModelRangeStrip(lo, hi, mn, avg, mx);
+  return `<article class="tw-flex tw-h-full tw-flex-col tw-rounded-2xl tw-border tw-border-zinc-200 tw-bg-white tw-p-4 tw-shadow-md">
+    <div class="tw-mb-2 tw-flex tw-items-start tw-justify-between tw-gap-2">
+      <h3 class="tw-mb-0 tw-text-base tw-font-bold tw-leading-tight tw-text-zinc-900">${escapeHtml(row.modelName || "—")}</h3>
+      <span class="tw-shrink-0 tw-rounded-md tw-bg-zinc-100 tw-px-2 tw-py-0.5 tw-font-mono tw-text-[11px] tw-text-zinc-600">#${escapeHtml(String(row.algoId ?? "?"))}</span>
+    </div>
+    <p class="tw-mb-3 tw-text-xs tw-text-zinc-600">${escapeHtml(String(row.factorCount ?? "—"))} decision factors in snapshot</p>
+    <div class="tw-grid tw-grid-cols-3 tw-gap-2 tw-text-center">
+      <div class="tw-rounded-lg tw-border tw-border-white/60 tw-bg-white/50 tw-p-2 tw-shadow-sm" style="${twImpactHeatStyle(avg, lo, hi)}">
+        <div class="tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-zinc-500">Avg</div>
+        <div class="tw-text-lg tw-font-black tw-tabular-nums tw-text-zinc-900">${avg.toFixed(2)}</div>
+      </div>
+      <div class="tw-rounded-lg tw-border tw-border-white/60 tw-bg-white/50 tw-p-2 tw-shadow-sm" style="${twImpactHeatStyle(mn, lo, hi)}">
+        <div class="tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-zinc-500">Min</div>
+        <div class="tw-text-lg tw-font-black tw-tabular-nums tw-text-zinc-900">${mn.toFixed(2)}</div>
+      </div>
+      <div class="tw-rounded-lg tw-border tw-border-white/60 tw-bg-white/50 tw-p-2 tw-shadow-sm" style="${twImpactHeatStyle(mx, lo, hi)}">
+        <div class="tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-zinc-500">Max</div>
+        <div class="tw-text-lg tw-font-black tw-tabular-nums tw-text-zinc-900">${mx.toFixed(2)}</div>
+      </div>
+    </div>
+    ${strip}
+  </article>`;
+}
+
+/** AI match 0–1: same tiers as factor bars (>0.9 green, >0.7 yellow, else red). */
 function scoreBadgeClass(score) {
-  if (score >= 0.9) return "text-bg-success";
-  if (score >= 0.8) return "text-bg-primary";
-  return "text-bg-secondary";
+  const s = Number(score);
+  if (!Number.isFinite(s)) return "text-bg-secondary";
+  if (s > 0.9) return "text-bg-success";
+  if (s > 0.7) return "text-bg-warning text-dark";
+  return "text-bg-danger";
+}
+
+function matchScoreBarClass(score) {
+  const s = Number(score);
+  if (!Number.isFinite(s)) return "bg-secondary";
+  if (s > 0.9) return "bg-success";
+  if (s > 0.7) return "bg-warning";
+  return "bg-danger";
+}
+
+/** Inline bar + numeric (Bootstrap equivalent of Tailwind flex + rounded-full track). */
+function renderMatchScoreBarCell(score, opts = {}) {
+  const align = opts.align === "start" ? "justify-content-start" : "justify-content-end";
+  const s = Number(score ?? 0);
+  const pct = Math.min(100, Math.max(0, Math.round(s * 100)));
+  const bar = matchScoreBarClass(s);
+  return `<div class="d-flex align-items-center gap-2 w-100 ${align}">
+    <div class="progress flex-grow-1" style="max-width: 14rem; height: 10px" role="none">
+      <div class="progress-bar ${bar}" style="width: ${pct}%" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+    <span class="small fw-semibold text-nowrap">${Number.isFinite(s) ? s.toFixed(2) : "—"}</span>
+  </div>`;
+}
+
+function renderAlgorithmBreakdownHtml(blocks) {
+  if (!Array.isArray(blocks) || !blocks.length) {
+    return '<p class="text-secondary small mb-0">No per-algorithm factor rows (link <code>user_decision_factors</code> to factors).</p>';
+  }
+  const esc = (s) => escapeHtml(String(s ?? ""));
+  return blocks
+    .map((block) => {
+      const factors = Array.isArray(block.factors) ? block.factors : [];
+      const fnRows = factors
+        .map((f) => {
+          const nm = (f.factorName && String(f.factorName).trim()) || `Factor ${f.factorId}`;
+          const cm = Number(f.candidateMatchScore ?? 0);
+          const rw = f.rubricWeight != null && f.rubricWeight !== "" ? Number(f.rubricWeight) : null;
+          const ev = f.evidenceNotes ? String(f.evidenceNotes).trim() : "";
+          const rwTxt = rw != null && Number.isFinite(rw) ? rw.toFixed(2) : "—";
+          return `<tr>
+            <td class="small px-2 py-2">${esc(nm)}</td>
+            <td class="small px-2 py-2">${renderMatchScoreBarCell(cm)}</td>
+            <td class="text-end small text-muted px-2 py-2">${rwTxt}</td>
+            <td class="small text-muted px-2 py-2">${ev ? esc(ev) : "—"}</td>
+          </tr>`;
+        })
+        .join("");
+      const note = block.explainer ? `<p class="small text-muted mb-2">${esc(block.explainer)}</p>` : "";
+      return `<div class="mb-3 pb-3 border-bottom border-secondary-subtle">
+        <p class="small fw-semibold mb-1">${esc(block.modelName || "Model")} <span class="text-muted">(algo ${esc(block.algoId)})</span></p>
+        ${note}
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0">
+            <thead class="table-light"><tr>
+              <th scope="col">Factor</th>
+              <th scope="col" style="min-width: 11rem">Candidate match</th>
+              <th scope="col" class="text-end">Rubric weight</th>
+              <th scope="col">Evidence / inputs</th>
+            </tr></thead>
+            <tbody>${fnRows}</tbody>
+          </table>
+        </div>
+      </div>`;
+    })
+    .join("");
 }
 
 function renderRankedTalentRows(rows) {
@@ -901,6 +1218,17 @@ function renderRankedTalentRows(rows) {
       </td>
     `;
     body.appendChild(tr);
+
+    const detailTr = document.createElement("tr");
+    detailTr.className = "table-light";
+    const summaryText = row.fitSummary ? escapeHtml(String(row.fitSummary)) : "Open for model vs. factor detail.";
+    detailTr.innerHTML = `<td colspan="7" class="py-2 small">
+      <details class="ranked-talent-detail">
+        <summary class="fw-semibold user-select-none">${summaryText}</summary>
+        <div class="pt-2">${renderAlgorithmBreakdownHtml(row.algorithmBreakdown)}</div>
+      </details>
+    </td>`;
+    body.appendChild(detailTr);
   }
 }
 
@@ -912,6 +1240,15 @@ function renderDecisionFactorBars(factors) {
     .map((f) => {
       const score = Number(f.impactScore ?? 0);
       const pct = Math.min(100, Math.max(0, Math.round(score * 100)));
+      const rw = f.rubricWeight != null && f.rubricWeight !== "" ? Number(f.rubricWeight) : null;
+      const rwLine =
+        rw != null && Number.isFinite(rw)
+          ? `<div class="small mb-1"><span class="fw-semibold text-secondary">Rubric weight in model:</span> <span class="text-muted">${rw.toFixed(2)}</span> <span class="text-muted">(how much this factor loads in the composite)</span></div>`
+          : "";
+      const ev = f.evidenceNotes != null && String(f.evidenceNotes).trim();
+      const evLine = ev
+        ? `<div class="small mb-1"><span class="fw-semibold text-secondary">Evidence / inputs:</span> <span class="text-muted">${escapeHtml(String(f.evidenceNotes).trim())}</span></div>`
+        : `<div class="small text-muted mb-1"><span class="fw-semibold text-secondary">Evidence / inputs:</span> — <span class="text-muted">(populate <code>user_decision_factors.evidence_notes</code> for résumé-aligned narrative)</span></div>`;
       const model = f.modelName || "Decision model";
       const fname = (f.factorName && String(f.factorName).trim()) || `Factor ${f.factorId}`;
       const jobHint = f.benchmarkJobTitle ? ` · ${escapeHtml(String(f.benchmarkJobTitle))}` : "";
@@ -924,16 +1261,21 @@ function renderDecisionFactorBars(factors) {
       const benchLine =
         benchParts.length > 0
           ? `<div class="small mb-1"><span class="fw-semibold text-secondary">Required benchmark:</span> <span class="text-muted">${escapeHtml(benchParts.join(" · "))}</span></div>`
-          : `<div class="small text-muted mb-1"><span class="fw-semibold text-secondary">Required benchmark:</span> — <span class="text-muted">(no scoring row linked for this model)</span></div>`;
+          : `<div class="small text-muted mb-1"><span class="fw-semibold text-secondary">Required benchmark:</span> — <span class="text-muted">(no scoring row linked for this model — run policy seed / link <code>algorithm_benchmarks</code>)</span></div>`;
+      const barCls = matchScoreBarClass(score);
       return `
       <div class="mb-3">
         <div class="d-flex justify-content-between small mb-1">
           <span><strong>${escapeHtml(fname)}</strong> <span class="text-muted">(${escapeHtml(model)}${jobHint})</span></span>
-          <span class="text-muted fw-semibold">${score.toFixed(2)}</span>
         </div>
+        ${rwLine}
+        ${evLine}
         ${benchLine}
-        <div class="progress" style="height: 10px" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
-          <div class="progress-bar" style="width: ${pct}%; background-color: var(--hm-teal, #0d9488)"></div>
+        <div class="d-flex align-items-center gap-2 px-1">
+          <div class="progress flex-grow-1" style="height: 10px" role="none">
+            <div class="progress-bar ${barCls}" style="width: ${pct}%" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" title="Match ${score.toFixed(2)}"></div>
+          </div>
+          <span class="small fw-semibold text-nowrap" title="Candidate match on this factor">${score.toFixed(2)}</span>
         </div>
       </div>`;
     })
@@ -1823,6 +2165,9 @@ function bootApp(session) {
   }
   if (session.role === "auditor" || session.role === "admin") {
     void loadDirectoryFromApi();
+  }
+  if (session.role === "recruiter" || session.role === "auditor" || session.role === "admin") {
+    void loadFairnessConsole();
   }
 }
 

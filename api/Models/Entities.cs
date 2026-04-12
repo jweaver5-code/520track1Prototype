@@ -207,6 +207,14 @@ public class UserDecisionFactor
     [Column("factor_id")]
     public int FactorId { get; set; }
 
+    /// <summary>Candidate-specific 0–1 match on this factor (distinct from rubric weight on <see cref="DecisionFactor"/>).</summary>
+    [Column("match_score", TypeName = "decimal(5,2)")]
+    public decimal? MatchScore { get; set; }
+
+    [MaxLength(2000)]
+    [Column("evidence_notes")]
+    public string? EvidenceNotes { get; set; }
+
     public User User { get; set; } = null!;
     public DecisionFactor DecisionFactor { get; set; } = null!;
 }

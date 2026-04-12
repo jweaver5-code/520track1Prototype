@@ -15,6 +15,13 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
     <link rel="stylesheet" href="./styles/main.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        prefix: "tw-",
+        corePlugins: { preflight: false },
+      };
+    </script>
   </head>
   <body class="app-body app-page-bg">
     <a class="visually-hidden-focusable position-absolute top-0 start-0 p-2" href="#loginMain"
@@ -88,7 +95,7 @@
       >Skip to application</a
     >
     <header class="app-shell text-white">
-      <div class="container py-2 d-flex flex-wrap align-items-center gap-2 gap-md-3">
+      <div class="container-fluid px-3 px-lg-4 px-xl-5 py-2 d-flex flex-wrap align-items-center gap-2 gap-md-3">
         <a class="navbar-brand text-white mb-0 text-decoration-none fw-semibold" href="#main">
           <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>HireMatchAI
         </a>
@@ -122,7 +129,7 @@
       </div>
 
       <nav class="navbar navbar-expand-lg navbar-dark app-shell-nav py-0">
-        <div class="container">
+        <div class="container-fluid px-3 px-lg-4 px-xl-5">
           <button
             class="navbar-toggler my-2"
             type="button"
@@ -312,7 +319,7 @@
       </nav>
     </header>
 
-    <main id="main" class="container py-4 pb-5">
+    <main id="main" class="container-fluid px-3 px-lg-4 px-xl-5 py-4 pb-5">
       <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
           <h1 class="h4 mb-1" id="pageTitle">Dashboard</h1>
@@ -589,7 +596,10 @@
           <div class="card shadow-sm mb-3">
             <div class="card-header bg-white py-3">
               <h2 class="h5 mb-1">Top candidates · AI ranking</h2>
-              <p class="text-secondary small mb-0">Candidates ordered by model fit from your hiring data.</p>
+              <p class="text-secondary small mb-0">
+                Candidates ordered by average per-factor <strong>match score</strong>. Expand a row for each algorithm:
+                candidate match vs rubric weight vs evidence notes.
+              </p>
             </div>
             <div class="table-responsive">
               <table class="table table-hover table-sm align-middle mb-0">
@@ -751,86 +761,76 @@
           aria-labelledby="tab-decisions"
           tabindex="0"
         >
-          <div class="card shadow-sm mb-3 data-role-hint" data-show-for="seeker">
-            <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-              <span class="fw-semibold">Decisions affecting your matches</span>
-              <span class="small text-secondary" id="seekerDecisionsHeaderMeta">—</span>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th scope="col">Decision ID</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Score / outcome</th>
-                    <th scope="col">Policy</th>
-                  </tr>
-                </thead>
-                <tbody id="seekerDecisionsTableBody">
-                  <tr>
-                    <td colspan="5" class="text-secondary small">Select this tab to load your decision history.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div class="card shadow-sm mb-3 data-role-hint" data-show-for="recruiter auditor admin">
-            <div class="card-header bg-white py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
-              <span class="fw-semibold">User ↔ decision factor links</span>
-              <div class="d-flex flex-wrap align-items-center gap-2">
-                <label class="small mb-0 text-secondary" for="decisionsAlgoFilter">Filter by algorithm</label>
-                <select id="decisionsAlgoFilter" class="form-select form-select-sm" style="min-width: 12rem" aria-label="Filter decisions by algorithm model">
-                  <option value="">All algorithms</option>
-                </select>
-              </div>
-              <span class="small text-secondary ms-auto" id="recruiterDecisionsHeaderMeta">—</span>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th scope="col">Decision ID</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Score / outcome</th>
-                    <th scope="col">Policy</th>
-                  </tr>
-                </thead>
-                <tbody id="recruiterDecisionsTableBody">
-                  <tr>
-                    <td colspan="5" class="text-secondary small">Select this tab to load the snapshot.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div class="row g-3 data-role-hint" data-show-for="recruiter auditor admin">
-            <div class="col-lg-6">
-              <div class="card border-primary shadow-sm h-100">
-                <div class="card-header bg-primary text-white py-2 small">Shortlist preview (same API as Ranked talent)</div>
-                <div class="card-body">
-                  <h3 class="h6">Top candidates</h3>
-                  <p class="small text-secondary mb-2">Loaded when you open this tab (recruiter/admin).</p>
-                  <p class="small fw-semibold mb-1">Top of the same list as Ranked talent</p>
-                  <ol class="small mb-3 ps-3" id="mockRankedCandidates"></ol>
-                  <button type="button" class="btn btn-sm btn-outline-primary" id="btnLogRankView">
-                    <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Log ranking viewed
-                  </button>
+          <div class="w-100">
+            <div class="card shadow-sm border-0 mb-2 data-role-hint" data-show-for="seeker">
+              <div class="card-body py-2 px-2">
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                  <span class="fw-semibold small">Your decisions</span>
+                  <span class="small text-secondary text-nowrap" id="seekerDecisionsHeaderMeta">—</span>
+                </div>
+                <div
+                  id="seekerDecisionsTableBody"
+                  class="tw-max-h-[42vh] tw-space-y-1 tw-overflow-y-auto tw-pr-0.5"
+                >
+                  <p class="tw-mb-0 tw-py-1 tw-text-xs tw-text-zinc-500">Open tab to load.</p>
                 </div>
               </div>
             </div>
-            <div class="col-lg-6">
-              <div class="card shadow-sm h-100">
-                <div class="card-body">
-                  <h3 class="h6">Logged fields (production)</h3>
-                  <ul class="small mb-0">
-                    <li>Decision ID, tenant, actor, UTC timestamp</li>
-                    <li>Policy pack + model + feature set version IDs</li>
-                    <li>Hashed or redacted inputs; explanation template ID</li>
-                    <li>Watermark for recruiter screen captures where required</li>
-                  </ul>
+
+            <div class="card shadow-sm border-0 mb-2 data-role-hint" data-show-for="recruiter auditor admin">
+              <div class="card-body py-2 px-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">
+                  <span class="fw-semibold small">Snapshot</span>
+                  <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="small text-muted text-nowrap" id="recruiterDecisionsHeaderMeta">—</span>
+                    <select
+                      id="decisionsAlgoFilter"
+                      class="form-select form-select-sm"
+                      style="width: 9rem; min-width: 0"
+                      aria-label="Filter by model"
+                    >
+                      <option value="">All models</option>
+                    </select>
+                  </div>
                 </div>
+                <div class="tw-rounded-md tw-border tw-border-zinc-200/70 tw-overflow-hidden">
+                  <div
+                    id="recruiterDecisionsColumnHead"
+                    class="tw-grid tw-grid-cols-[9rem_minmax(0,1fr)_7.5rem] tw-items-center tw-gap-x-3 tw-border-b tw-border-zinc-200/80 tw-bg-zinc-100/90 tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-zinc-600 sm:tw-grid-cols-[10rem_minmax(0,1fr)_8rem] d-none"
+                  >
+                    <span>ID</span>
+                    <span>Candidate</span>
+                    <button
+                      type="button"
+                      id="btnSortDecisionsByScore"
+                      class="tw-inline-flex tw-w-full tw-items-center tw-justify-end tw-gap-1 tw-border-0 tw-bg-transparent tw-p-0 tw-text-right tw-font-semibold tw-text-zinc-700 hover:tw-text-teal-700 hover:tw-underline tw-underline-offset-2"
+                      aria-sort="none"
+                      aria-label="Sort by score. Cycles: default order, then high to low, then low to high."
+                      title="Click to cycle: API order → high score first → low score first"
+                    >
+                      Score <span id="decisionsScoreSortIndicator" class="tw-ms-0.5 tw-font-normal tw-text-zinc-500" aria-hidden="true"></span>
+                    </button>
+                  </div>
+                  <div
+                    id="recruiterDecisionsTableBody"
+                    class="tw-max-h-[40vh] tw-space-y-1 tw-overflow-y-auto tw-bg-white tw-px-0 tw-py-1 tw-pr-0.5"
+                  >
+                    <p class="tw-mb-0 tw-py-1 tw-text-xs tw-text-zinc-500">Open tab to load.</p>
+                  </div>
+                </div>
+                <details class="tw-mt-2 tw-rounded-md tw-border tw-border-zinc-200/80 tw-bg-zinc-50/50">
+                  <summary
+                    class="tw-cursor-pointer tw-select-none tw-list-none tw-px-2 tw-py-1.5 tw-text-xs tw-font-medium tw-text-zinc-600 marker:tw-content-none [&::-webkit-details-marker]:tw-hidden"
+                  >
+                    Shortlist <span class="tw-font-normal tw-text-zinc-400">(top 5)</span>
+                  </summary>
+                  <div class="tw-border-t tw-border-zinc-200/60 tw-px-2 tw-pb-2 tw-pt-1">
+                    <div id="mockRankedCandidates" class="tw-space-y-1"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 mt-1" id="btnLogRankView" style="font-size: 0.75rem">
+                      <i class="bi bi-clipboard-check" aria-hidden="true"></i> Log view
+                    </button>
+                  </div>
+                </details>
               </div>
             </div>
           </div>
@@ -883,36 +883,40 @@
           tabindex="0"
         >
           <div class="row g-3 data-role-hint" data-show-for="recruiter auditor admin">
-            <div class="col-lg-6">
-              <div class="card shadow-sm h-100">
-                <div class="card-header bg-white py-2 fw-semibold">Cohort parity</div>
-                <div class="card-body">
-                  <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                      <thead>
-                        <tr>
-                          <th scope="col">Group</th>
-                          <th scope="col" class="text-end">Selected</th>
-                          <th scope="col" class="text-end">Rate</th>
-                        </tr>
-                      </thead>
-                      <tbody id="fairnessParityBody">
-                        <tr>
-                          <td colspan="3" class="text-secondary small">No cohort disparity data to display.</td>
-                        </tr>
-                      </tbody>
-                    </table>
+            <div class="col-12">
+              <div class="card shadow-sm border-0 tw-overflow-hidden">
+                <div
+                  class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom"
+                >
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="fw-semibold">Cohort parity dashboard</span>
+                    <span
+                      id="fairnessBiasBadgeWrap"
+                      class="tw-hidden tw-inline-flex tw-items-center"
+                      aria-live="polite"
+                    ></span>
+                  </div>
+                  <span class="small text-secondary">Selection rate by role cohort · threshold 0.80</span>
+                </div>
+                <div class="card-body p-3">
+                  <div
+                    id="fairnessParityBody"
+                    class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 xl:tw-grid-cols-3 tw-gap-3"
+                  >
+                    <p class="tw-mb-0 tw-col-span-full tw-text-sm tw-text-zinc-500">
+                      No cohort disparity data to display.
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="col-lg-6">
-              <div class="card shadow-sm h-100">
+            <div class="col-lg-5 ms-auto">
+              <div class="card shadow-sm h-100 border-0 tw-rounded-2xl tw-bg-gradient-to-br tw-from-slate-50 tw-to-teal-50/40">
                 <div class="card-body">
                   <h2 class="h6">Fairness monitoring</h2>
-                  <p class="small text-secondary mb-0">
-                    Review Requests highlights low impact ratios; expand this panel when cohort analytics are
-                    available.
+                  <p id="fairnessSummaryNote" class="small text-secondary mb-0">
+                    A <strong>Bias Alert</strong> badge appears in the header when any cohort rate is below 0.80.
+                    Review Requests still flags individual applicants when impact ratio is below 0.70.
                   </p>
                 </div>
               </div>
@@ -938,77 +942,69 @@
           </div>
           <div class="row g-3 data-role-hint" data-show-for="recruiter admin">
             <div class="col-12">
-              <div class="card shadow-sm">
-                <div class="card-header bg-white py-3">
+              <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 border-bottom">
                   <h2 class="h5 mb-1">Library of active algorithms</h2>
                   <p class="text-secondary small mb-0">Models in production for ranking and matching.</p>
                 </div>
-                <div class="table-responsive">
-                  <table class="table table-hover table-sm align-middle mb-0">
-                    <thead class="table-light">
-                      <tr>
-                        <th scope="col">Model</th>
-                        <th scope="col">Vendor</th>
-                        <th scope="col">Version</th>
-                        <th scope="col">Last audit date</th>
-                      </tr>
-                    </thead>
-                    <tbody id="algorithmsLibraryBody">
-                      <tr>
-                        <td colspan="4" class="text-secondary small">Select this tab to load algorithms.</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div class="card-body p-3">
+                  <div
+                    id="algorithmsLibraryBody"
+                    class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 xl:tw-grid-cols-3 tw-gap-3"
+                  >
+                    <p class="tw-mb-0 tw-col-span-full tw-text-sm tw-text-zinc-500">
+                      Select this tab to load algorithms.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
             <div class="col-12">
-              <div class="card shadow-sm mb-3">
-                <div class="card-header bg-white py-3">
+              <div class="card shadow-sm mb-3 border-0">
+                <div class="card-header bg-white py-3 border-bottom">
                   <h2 class="h5 mb-1">Model comparison</h2>
                   <p class="text-secondary small mb-0">
-                    Mean impact score per model (higher average = stricter weighting on recorded factors in this dataset).
+                    Impact distribution per model from your database. Heat tint scales min → max across all models
+                    shown.
                   </p>
                 </div>
-                <div class="table-responsive">
-                  <table class="table table-hover table-sm align-middle mb-0">
-                    <thead class="table-light">
-                      <tr>
-                        <th scope="col">Model</th>
-                        <th scope="col" class="text-end">Factors (n)</th>
-                        <th scope="col" class="text-end">Avg impact</th>
-                        <th scope="col" class="text-end">Min</th>
-                        <th scope="col" class="text-end">Max</th>
-                      </tr>
-                    </thead>
-                    <tbody id="modelComparisonBody">
-                      <tr>
-                        <td colspan="5" class="text-secondary small">Select this tab to load model comparison.</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div class="card-body p-3">
+                  <div
+                    class="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2 tw-rounded-lg tw-border tw-border-zinc-200 tw-bg-zinc-50 tw-px-3 tw-py-2"
+                  >
+                    <span class="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-zinc-500"
+                      >Impact heat scale</span
+                    >
+                    <div
+                      class="tw-h-2 tw-flex-1 tw-min-w-[8rem] tw-max-w-md tw-rounded-full tw-bg-gradient-to-r tw-from-rose-200 tw-via-amber-200 tw-to-emerald-300 tw-border tw-border-zinc-200/80"
+                      title="Lower values (rose) → higher values (emerald) within this batch"
+                    ></div>
+                    <span class="tw-text-xs tw-text-zinc-500">Min · spread · Max</span>
+                  </div>
+                  <div
+                    id="modelComparisonBody"
+                    class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-4"
+                  >
+                    <p class="tw-mb-0 tw-col-span-full tw-text-sm tw-text-zinc-500">
+                      Select this tab to load model comparison.
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div class="card shadow-sm">
-                <div class="card-header bg-white py-3">
+              <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 border-bottom">
                   <h2 class="h5 mb-1">Policy guide</h2>
                   <p class="text-secondary small mb-0">Scoring rules tied to open roles.</p>
                 </div>
-                <div class="table-responsive">
-                  <table class="table table-hover table-sm align-middle mb-0">
-                    <thead class="table-light">
-                      <tr>
-                        <th scope="col">Role / title</th>
-                        <th scope="col">Required skills</th>
-                        <th scope="col" class="text-end">Min. experience (yrs)</th>
-                      </tr>
-                    </thead>
-                    <tbody id="policyGuideTableBody">
-                      <tr>
-                        <td colspan="3" class="text-secondary small">Select this tab to load policy rules.</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div class="card-body p-3">
+                  <div
+                    id="policyGuideTableBody"
+                    class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-3"
+                  >
+                    <p class="tw-mb-0 tw-col-span-full tw-text-sm tw-text-zinc-500">
+                      Select this tab to load policy rules.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1104,7 +1100,7 @@
     </main>
 
     <footer class="border-top bg-white py-3 mt-auto small text-secondary">
-      <div class="container d-flex flex-wrap justify-content-between gap-2">
+      <div class="container-fluid px-3 px-lg-4 px-xl-5 d-flex flex-wrap justify-content-between gap-2">
         <span>HireMatchAI · Governance prototype</span>
         <span>© 2026</span>
       </div>
@@ -1163,6 +1159,13 @@
           <div class="modal-body">
             <p class="small text-secondary mb-3" id="modalResolveReviewIntro">
               Compare algorithm outputs to corporate job requirements, then record a justification before you resolve.
+              <span class="d-block mt-2 text-muted">
+                These panels are empty when this applicant has no
+                <code>user_decision_factors</code> rows, or when their factors’ algorithms are not linked in
+                <code>algorithm_benchmarks</code> to <code>scoring_criteria</code>. Seed / fix data with
+                <code>api/migrations/003_match_score_evidence_and_policy_seed.sql</code> then
+                <code>api/migrations/004_link_applicants_to_factors_resolve_modal.sql</code>.
+              </span>
             </p>
             <input type="hidden" id="resolveReviewRequestId" value="" />
             <input type="hidden" id="resolveApplicantUserId" value="" />

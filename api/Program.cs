@@ -1,6 +1,7 @@
 using api.Data;
 using api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +65,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("FrontendPolicy");
+
+// Repo root (parent of /api) holds index.html, scripts/, styles/ — open http://localhost:5113/ for the full UI.
+var repoRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, ".."));
+if (File.Exists(Path.Combine(repoRoot, "index.html")))
+{
+    var webFiles = new PhysicalFileProvider(repoRoot);
+    app.UseDefaultFiles(new DefaultFilesOptions
+    {
+        FileProvider = webFiles,
+        DefaultFileNames = ["index.html"]
+    });
+    app.UseStaticFiles(new StaticFileOptions { FileProvider = webFiles });
+}
 
 app.MapGet("/health/db", async (AppDbContext db, CancellationToken ct) =>
 {
@@ -152,31 +166,87 @@ app.MapGet("/api/recruiter/ranked-talent", async (AppDbContext db, CancellationT
 
     var userIds = users.Select(u => u.UserId).ToList();
 
-    var flat = await (
+    var factorRows = await (
         from udf in db.UserDecisionFactors.AsNoTracking()
         join df in db.DecisionFactors.AsNoTracking() on udf.FactorId equals df.FactorId
         join algo in db.Algorithms.AsNoTracking() on df.AlgoId equals algo.AlgoId
         where userIds.Contains(udf.UserId)
-        select new { udf.UserId, Impact = df.ImpactScore ?? 0m, algo.ModelName, algo.AlgoId }
+        select new
+        {
+            udf.UserId,
+            df.FactorId,
+            FactorName = df.FactorName ?? "",
+            df.AlgoId,
+            ModelName = algo.ModelName,
+            RubricWeight = df.ImpactScore ?? 0m,
+            CandidateMatch = udf.MatchScore ?? df.ImpactScore ?? 0m,
+            udf.EvidenceNotes
+        }
     ).ToListAsync(ct);
 
-    var grouped = flat
+    var avgByUser = factorRows
+        .GroupBy(x => x.UserId)
+        .ToDictionary(g => g.Key, g => g.Average(x => x.CandidateMatch));
+
+    var breakdownByUser = factorRows
         .GroupBy(x => x.UserId)
         .ToDictionary(
             g => g.Key,
-            g => new
-            {
-                AvgFit = g.Average(x => x.Impact),
-                ModelName = g.Select(x => x.ModelName).FirstOrDefault() ?? "Model",
-                AlgoId = g.Min(x => x.AlgoId)
-            });
+            g => g
+                .GroupBy(x => x.AlgoId)
+                .Select(ag => new
+                {
+                    algoId = ag.Key,
+                    modelName = ag.First().ModelName,
+                    explainer =
+                        "Per-factor candidateMatchScore is this person's 0–1 model output on that signal. "
+                        + "rubricWeight is how heavily that factor loads in the published composite for this algorithm (policy rubric, not résumé text). "
+                        + "evidenceNotes summarize what the evaluator ingested when that score was produced.",
+                    factors = ag
+                        .OrderBy(x => x.FactorId)
+                        .Select(x => new
+                        {
+                            x.FactorId,
+                            factorName = string.IsNullOrWhiteSpace(x.FactorName)
+                                ? $"Factor {x.FactorId}"
+                                : x.FactorName.Trim(),
+                            candidateMatchScore = Math.Round(x.CandidateMatch, 2, MidpointRounding.AwayFromZero),
+                            rubricWeight = Math.Round(x.RubricWeight, 2, MidpointRounding.AwayFromZero),
+                            evidenceNotes = string.IsNullOrWhiteSpace(x.EvidenceNotes) ? null : x.EvidenceNotes.Trim()
+                        })
+                        .ToList()
+                })
+                .OrderBy(x => x.algoId)
+                .ToList());
 
-    var candidates = users.Select((u, index) =>
+    var sortedUsers = users
+        .OrderByDescending(u => avgByUser.GetValueOrDefault(u.UserId))
+        .ThenBy(u => u.Name)
+        .ToList();
+
+    var candidates = sortedUsers.Select((u, index) =>
     {
-        grouped.TryGetValue(u.UserId, out var g);
-        var fit = g?.AvgFit ?? 0m;
-        var model = g?.ModelName ?? "No linked decision factors";
-        var algoId = g?.AlgoId ?? 0;
+        avgByUser.TryGetValue(u.UserId, out var fit);
+        breakdownByUser.TryGetValue(u.UserId, out var algs);
+        var first = factorRows.Where(x => x.UserId == u.UserId).OrderBy(x => x.AlgoId).FirstOrDefault();
+        var algoId = first?.AlgoId ?? 0;
+        var model = first?.ModelName ?? "No linked decision factors";
+        var fitSummary = "No factor-level scores on file.";
+        if (algs is { Count: > 0 })
+        {
+            static string ShortName(string s) => s.Length <= 22 ? s : s[..22] + "…";
+            var parts = new List<string>();
+            foreach (var block in algs)
+            {
+                var bits = block.factors
+                    .Take(4)
+                    .Select(f => $"{ShortName(f.factorName)}:{f.candidateMatchScore:0.00}");
+                parts.Add($"{block.modelName}: {string.Join(", ", bits)}");
+            }
+
+            fitSummary = string.Join(" · ", parts);
+        }
+
         return new
         {
             rank = index + 1,
@@ -185,9 +255,11 @@ app.MapGet("/api/recruiter/ranked-talent", async (AppDbContext db, CancellationT
             requisition = model,
             aiFit = Math.Round(fit, 2, MidpointRounding.AwayFromZero),
             signals = $"Role={u.UserRole}",
-            runId = algoId > 0 ? $"algo-{algoId}" : "—"
+            runId = algoId > 0 ? $"algo-{algoId}" : "—",
+            fitSummary,
+            algorithmBreakdown = algs ?? []
         };
-    });
+    }).ToList();
 
     return Results.Ok(candidates);
 });
@@ -205,10 +277,12 @@ app.MapGet("/api/recruiter/decision-details/{userId:int}", async (int userId, Ap
         .Select(udf => new
         {
             udf.FactorId,
-            Impact = udf.DecisionFactor.ImpactScore,
+            RubricWeight = udf.DecisionFactor.ImpactScore,
+            CandidateMatch = udf.MatchScore ?? udf.DecisionFactor.ImpactScore,
             FactorName = udf.DecisionFactor.FactorName,
             AlgoId = udf.DecisionFactor.AlgoId,
-            ModelName = udf.DecisionFactor.Algorithm.ModelName
+            ModelName = udf.DecisionFactor.Algorithm.ModelName,
+            udf.EvidenceNotes
         })
         .OrderBy(x => x.FactorId)
         .ToListAsync(ct);
@@ -233,11 +307,14 @@ app.MapGet("/api/recruiter/decision-details/{userId:int}", async (int userId, Ap
         var fn = string.IsNullOrWhiteSpace(u.FactorName)
             ? $"Factor {u.FactorId}"
             : u.FactorName!.Trim();
+        var match = u.CandidateMatch ?? 0m;
         return new
         {
             factorId = u.FactorId,
             factorName = fn,
-            impactScore = u.Impact,
+            impactScore = match,
+            rubricWeight = u.RubricWeight,
+            evidenceNotes = string.IsNullOrWhiteSpace(u.EvidenceNotes) ? null : u.EvidenceNotes.Trim(),
             modelName = u.ModelName,
             algoId = u.AlgoId,
             benchmarkJobTitle = sc?.JobTitle,
@@ -263,14 +340,15 @@ app.MapGet("/api/recruiter/candidate-policy-gap/{userId:int}", async (int userId
         return Results.NotFound(new { message = "User not found." });
     }
 
-    var hay = $"{user.Name} {user.Email} {user.UserRole}".ToLowerInvariant();
-    var factorNames = await db.UserDecisionFactors.AsNoTracking()
+    var hay = $"{user.Name} {user.Email} {user.UserRole} {user.JobTitle} {user.Department}".ToLowerInvariant();
+    var factorText = await db.UserDecisionFactors.AsNoTracking()
         .Where(udf => udf.UserId == userId)
-        .Select(udf => udf.DecisionFactor.FactorName ?? "")
+        .Select(udf => new { udf.DecisionFactor.FactorName, udf.EvidenceNotes })
         .ToListAsync(ct);
-    foreach (var n in factorNames)
+    foreach (var row in factorText)
     {
-        hay += " " + n.ToLowerInvariant();
+        hay += " " + (row.FactorName ?? "").ToLowerInvariant();
+        hay += " " + (row.EvidenceNotes ?? "").ToLowerInvariant();
     }
 
     var rawCriteria = await (
@@ -1038,7 +1116,7 @@ app.MapGet("/api/dashboard/metrics", async (string? email, AppDbContext db, Canc
         {
             var impacts = await db.UserDecisionFactors.AsNoTracking()
                 .Where(udf => udf.UserId == u.UserId)
-                .Select(udf => udf.DecisionFactor.ImpactScore)
+                .Select(udf => udf.MatchScore ?? udf.DecisionFactor.ImpactScore)
                 .Where(s => s != null)
                 .Select(s => s!.Value)
                 .ToListAsync(ct);
@@ -1056,6 +1134,38 @@ app.MapGet("/api/dashboard/metrics", async (string? email, AppDbContext db, Canc
                 appeals = appealsCount
             };
         }
+    }
+
+    var openStageStatuses = new[] { "pending", "in progress", "escalated", "under ethical review" };
+    var openStageRows = await (
+        from tp in db.TransparencyPortal.AsNoTracking()
+        join ua in db.UserAppeals.AsNoTracking() on tp.RequestId equals ua.RequestId into appealJoin
+        from ua in appealJoin.DefaultIfEmpty()
+        let st = (tp.RequestStatus ?? "").Trim().ToLower()
+        where openStageStatuses.Contains(st)
+        select new
+        {
+            CreatedDate = ua != null && ua.AppealDate != null
+                ? ua.AppealDate.Value.ToDateTime(TimeOnly.MinValue)
+                : (DateTime?)null
+        }
+    ).ToListAsync(ct);
+
+    var stageAges = openStageRows
+        .Select(x => x.CreatedDate)
+        .Where(d => d != null)
+        .Select(d => Math.Max(0d, (now - d!.Value).TotalDays))
+        .OrderBy(x => x)
+        .ToList();
+
+    double? medianDaysInStage = null;
+    if (stageAges.Count > 0)
+    {
+        var mid = stageAges.Count / 2;
+        medianDaysInStage = stageAges.Count % 2 == 1
+            ? stageAges[mid]
+            : (stageAges[mid - 1] + stageAges[mid]) / 2d;
+        medianDaysInStage = Math.Round(medianDaysInStage.Value, 1, MidpointRounding.AwayFromZero);
     }
 
     var escalations = await db.AuditLogs.AsNoTracking()
@@ -1079,6 +1189,10 @@ app.MapGet("/api/dashboard/metrics", async (string? email, AppDbContext db, Canc
         userDecisionFactorLinks = udfCount,
         seekerRoleCount = seekerCount,
         seeker,
+        recruiter = new
+        {
+            medianDaysInStage
+        },
         recentAuditSummaries = escalations
     });
 });
@@ -1101,7 +1215,7 @@ app.MapGet("/api/seeker/job-matches", async (string? email, AppDbContext db, Can
         from udf in db.UserDecisionFactors.AsNoTracking()
         join df in db.DecisionFactors.AsNoTracking() on udf.FactorId equals df.FactorId
         where udf.UserId == user.UserId
-        select new { df.AlgoId, Impact = df.ImpactScore ?? 0m }
+        select new { df.AlgoId, Impact = udf.MatchScore ?? df.ImpactScore ?? 0m }
     ).ToListAsync(ct);
 
     var benchRows = await db.AlgorithmBenchmarks.AsNoTracking().ToListAsync(ct);
@@ -1162,7 +1276,7 @@ app.MapGet("/api/user/decision-history", async (string? email, AppDbContext db, 
             decisionId = $"factor-{udf.FactorId}",
             type = "Decision factor",
             subject = udf.DecisionFactor.Algorithm.ModelName,
-            score = udf.DecisionFactor.ImpactScore,
+            score = udf.MatchScore ?? udf.DecisionFactor.ImpactScore,
             policy = udf.DecisionFactor.Algorithm.Version ?? "—"
         })
         .ToListAsync(ct);
@@ -1183,7 +1297,7 @@ app.MapGet("/api/recruiter/decision-snapshot", async (AppDbContext db, Cancellat
             decisionId = $"factor-{udf.FactorId}-u{udf.UserId}",
             type = "Candidate factor",
             subject = u.Name + " · " + algo.ModelName,
-            score = df.ImpactScore,
+            score = udf.MatchScore ?? df.ImpactScore,
             policy = algo.Version ?? "—",
             algoId = df.AlgoId,
             modelName = algo.ModelName
@@ -1191,6 +1305,60 @@ app.MapGet("/api/recruiter/decision-snapshot", async (AppDbContext db, Cancellat
     ).Take(40).ToListAsync(ct);
 
     return Results.Ok(rows);
+});
+
+app.MapGet("/api/fairness/summary", async (AppDbContext db, CancellationToken ct) =>
+{
+    var users = await db.Users.AsNoTracking()
+        .Select(u => new { u.UserId, u.UserRole })
+        .ToListAsync(ct);
+
+    var ratioLogs = await db.AuditLogs.AsNoTracking()
+        .Where(a => a.UserId != null && a.ImpactRatio != null)
+        .OrderByDescending(a => a.LogId)
+        .Select(a => new { a.UserId, a.ImpactRatio })
+        .ToListAsync(ct);
+
+    var latestRatioByUser = new Dictionary<int, decimal>();
+    foreach (var row in ratioLogs)
+    {
+        if (row.UserId is null) continue;
+        var uid = row.UserId.Value;
+        if (!latestRatioByUser.ContainsKey(uid))
+        {
+            latestRatioByUser[uid] = row.ImpactRatio!.Value;
+        }
+    }
+
+    var grouped = users
+        .Where(u => latestRatioByUser.ContainsKey(u.UserId))
+        .GroupBy(u => (u.UserRole ?? "unknown").Trim())
+        .Select(g =>
+        {
+            var rates = g.Select(x => latestRatioByUser[x.UserId]).ToList();
+            var selected = rates.Count(r => r >= 0.70m);
+            var total = rates.Count;
+            var rate = total > 0 ? Math.Round((decimal)selected / total, 4, MidpointRounding.AwayFromZero) : 0m;
+            return new
+            {
+                group = g.Key.Length == 0 ? "unknown" : g.Key,
+                selectedCount = selected,
+                totalCount = total,
+                selectionRate = rate
+            };
+        })
+        .OrderBy(x => x.group)
+        .ToList();
+
+    var minRate = grouped.Count > 0 ? grouped.Min(x => x.selectionRate) : 0m;
+    var flaggedGroups = grouped.Count(x => x.selectionRate < 0.70m);
+
+    return Results.Ok(new
+    {
+        cohortParity = grouped,
+        flaggedGroups,
+        minSelectionRate = minRate
+    });
 });
 
 app.MapGet("/api/seeker/transparency-feed", async (string? email, AppDbContext db, CancellationToken ct) =>
