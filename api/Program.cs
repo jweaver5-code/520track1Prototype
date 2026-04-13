@@ -25,6 +25,10 @@ builder.Services.AddCors(options =>
                     "http://127.0.0.1:5500",
                     "http://localhost:5113",
                     "http://127.0.0.1:5113",
+                    "http://localhost:5200",
+                    "http://127.0.0.1:5200",
+                    "http://localhost:8080",
+                    "http://127.0.0.1:8080",
                     "http://localhost:3000",
                     "http://127.0.0.1:3000",
                 };
@@ -1309,10 +1313,6 @@ app.MapGet("/api/recruiter/decision-snapshot", async (AppDbContext db, Cancellat
 
 app.MapGet("/api/fairness/summary", async (AppDbContext db, CancellationToken ct) =>
 {
-    var users = await db.Users.AsNoTracking()
-        .Select(u => new { u.UserId, u.UserRole })
-        .ToListAsync(ct);
-
     var ratioLogs = await db.AuditLogs.AsNoTracking()
         .Where(a => a.UserId != null && a.ImpactRatio != null)
         .OrderByDescending(a => a.LogId)
@@ -1330,15 +1330,37 @@ app.MapGet("/api/fairness/summary", async (AppDbContext db, CancellationToken ct
         }
     }
 
-    var grouped = users
-        .Where(u => latestRatioByUser.ContainsKey(u.UserId))
-        .GroupBy(u => (u.UserRole ?? "unknown").Trim())
+    if (latestRatioByUser.Count == 0)
+    {
+        return Results.Ok(new
+        {
+            cohortParity = Array.Empty<object>(),
+            demographicBreakdown = new { byDepartment = Array.Empty<object>(), byJobTitle = Array.Empty<object>() },
+            flaggedGroups = 0,
+            minSelectionRate = 0m,
+            demographicMaxGap = (decimal?)null
+        });
+    }
+
+    var userIds = latestRatioByUser.Keys.ToList();
+    var demoUsers = await db.Users.AsNoTracking()
+        .Where(u => userIds.Contains(u.UserId))
+        .Select(u => new { u.UserId, u.UserRole, u.Department, u.JobTitle })
+        .ToListAsync(ct);
+
+    string DemoKey(string? value, string fallback) =>
+        string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+
+    var grouped = demoUsers
+        .GroupBy(u => DemoKey(u.UserRole, "unknown"))
         .Select(g =>
         {
             var rates = g.Select(x => latestRatioByUser[x.UserId]).ToList();
             var selected = rates.Count(r => r >= 0.70m);
             var total = rates.Count;
-            var rate = total > 0 ? Math.Round((decimal)selected / total, 4, MidpointRounding.AwayFromZero) : 0m;
+            var rate = total > 0
+                ? Math.Round((decimal)selected / total, 4, MidpointRounding.AwayFromZero)
+                : 0m;
             return new
             {
                 group = g.Key.Length == 0 ? "unknown" : g.Key,
@@ -1350,12 +1372,67 @@ app.MapGet("/api/fairness/summary", async (AppDbContext db, CancellationToken ct
         .OrderBy(x => x.group)
         .ToList();
 
+    var byDepartment = demoUsers
+        .GroupBy(u => DemoKey(u.Department, "Unspecified"))
+        .Select(g =>
+        {
+            var rates = g.Select(x => latestRatioByUser[x.UserId]).ToList();
+            var selected = rates.Count(r => r >= 0.70m);
+            var total = rates.Count;
+            var rate = total > 0
+                ? Math.Round((decimal)selected / total, 4, MidpointRounding.AwayFromZero)
+                : 0m;
+            return new
+            {
+                group = g.Key,
+                selectedCount = selected,
+                totalCount = total,
+                selectionRate = rate
+            };
+        })
+        .OrderBy(x => x.group)
+        .ToList();
+
+    var byJobTitle = demoUsers
+        .GroupBy(u => DemoKey(u.JobTitle, "Unspecified"))
+        .Select(g =>
+        {
+            var rates = g.Select(x => latestRatioByUser[x.UserId]).ToList();
+            var selected = rates.Count(r => r >= 0.70m);
+            var total = rates.Count;
+            var rate = total > 0
+                ? Math.Round((decimal)selected / total, 4, MidpointRounding.AwayFromZero)
+                : 0m;
+            return new
+            {
+                group = g.Key,
+                selectedCount = selected,
+                totalCount = total,
+                selectionRate = rate
+            };
+        })
+        .OrderBy(x => x.group)
+        .ToList();
+
     var minRate = grouped.Count > 0 ? grouped.Min(x => x.selectionRate) : 0m;
     var flaggedGroups = grouped.Count(x => x.selectionRate < 0.70m);
+
+    var allDemoRates = byDepartment.Select(x => x.selectionRate)
+        .Concat(byJobTitle.Select(x => x.selectionRate))
+        .ToList();
+    var demographicMaxGap = allDemoRates.Count > 1
+        ? allDemoRates.Max() - allDemoRates.Min()
+        : (decimal?)null;
 
     return Results.Ok(new
     {
         cohortParity = grouped,
+        demographicBreakdown = new
+        {
+            byDepartment,
+            byJobTitle
+        },
+        demographicMaxGap,
         flaggedGroups,
         minSelectionRate = minRate
     });

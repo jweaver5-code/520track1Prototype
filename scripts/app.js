@@ -20,8 +20,6 @@ const API_BASE_URL = (() => {
 
 /** Normalized rows for the audit log table (from GET /api/audit-logs). */
 let auditLogRows = [];
-
-let auditFilter = "all";
 let appListenersAttached = false;
 let rankedTalentLoaded = false;
 let reviewRequestsLoaded = false;
@@ -29,26 +27,14 @@ let jobsLoaded = false;
 let profileLoaded = false;
 let seekerDecisionsLoaded = false;
 let recruiterDecisionsLoaded = false;
-let fairnessLoaded = false;
-let transparencyLoaded = false;
+let transparencyFeedLoaded = false;
 let decisionsRankPreviewLoaded = false;
-let explainabilityRecruiterLoaded = false;
+let decisionsContextLoaded = false;
 
 /** Latest GET /api/recruiter/decision-snapshot rows for client-side algorithm filter. */
 let recruiterDecisionsRows = [];
 /** "" | "score-desc" | "score-asc" — toggled by clicking the Score column header. */
 let recruiterDecisionsSortMode = "";
-
-const ROLE_BANNER = {
-  seeker:
-    "Signed in as Seeker: Job postings (ranked for you), Profile, and Explainability. No directory, fairness console, about page, or audit log.",
-  recruiter:
-    "Signed in as Recruiter: Ranked talent (AI), reviewer workstation (claim, address, resolve with final action including escalate to admin). No directory or About. Audit log: Auditor/Admin only.",
-  auditor:
-    "Signed in as Auditor: Directory, Audit log, Fairness, About. Applicant review queue is recruiter-only; ranked talent is recruiter-only.",
-  admin:
-    "Signed in as Admin: Ranked talent, Review requests, Directory, Audit log, About, and exports.",
-};
 
 const TAB_LABELS = {
   "tab-dashboard": "Dashboard",
@@ -60,8 +46,6 @@ const TAB_LABELS = {
   "tab-decisions": "Decisions",
   "tab-audit": "Audit log",
   "tab-fairness": "Fairness",
-  "tab-transparency": "Explainability",
-  "tab-reference": "About",
 };
 
 function el(id) {
@@ -196,27 +180,86 @@ function inferAuditType(summary) {
   return "job_match";
 }
 
+/**
+ * Compliance column + row flagging: uses impact ratio (&lt;0.70 = fairness risk) and summary keywords.
+ * States: non_compliant | compliant | unsure
+ */
+function inferComplianceState(summary, impactRatio) {
+  const s = String(summary || "").toLowerCase();
+  const bad =
+    /non-?compliant|violation|breach|escalat|ethical review|under ethical|overturn|unfair|flagged|penalt|sanction|\bfail\b|formal dispute/;
+  const good = /\bupheld\b|\bcompliant\b|cleared|no violation|passed inspection|resolved\b.*\b(ok|pass)/;
+  const r = impactRatio != null && Number.isFinite(Number(impactRatio)) ? Number(impactRatio) : null;
+  if (r != null && r < 0.7) return "non_compliant";
+  if (bad.test(s)) return "non_compliant";
+  if (good.test(s)) return "compliant";
+  if (r != null && r >= 0.7) return "compliant";
+  return "unsure";
+}
+
+function complianceBadgeHtml(state) {
+  if (state === "non_compliant") {
+    return '<span class="badge text-bg-danger">Non-compliant</span>';
+  }
+  if (state === "compliant") {
+    return '<span class="badge text-bg-success">Compliant</span>';
+  }
+  return '<span class="badge text-bg-secondary">Needs review</span>';
+}
+
 function mapApiAuditRow(row) {
-  const summary = row.complianceStatus || "—";
+  const r = row && typeof row === "object" ? row : {};
+  const summary = r.complianceStatus ?? r.ComplianceStatus ?? "—";
+  const ts = r.auditTimestamp ?? r.AuditTimestamp;
   const iso =
-    row.auditTimestamp != null
-      ? String(row.auditTimestamp).replace("T", " ").slice(0, 19)
-      : "—";
+    ts != null ? String(ts).replace("T", " ").slice(0, 19) : "—";
   const type = inferAuditType(summary);
   const policyParts = [];
-  if (row.reviewerId != null) policyParts.push(`reviewer ${row.reviewerId}`);
-  if (row.factorId != null) policyParts.push(`factor ${row.factorId}`);
-  if (row.userId != null) policyParts.push(`user ${row.userId}`);
+  const revId = r.reviewerId ?? r.ReviewerId;
+  const facId = r.factorId ?? r.FactorId;
+  const uid = r.userId ?? r.UserId;
+  if (revId != null) policyParts.push(`reviewer ${revId}`);
+  if (facId != null) policyParts.push(`factor ${facId}`);
+  if (uid != null) policyParts.push(`user ${uid}`);
   const policy = policyParts.length ? policyParts.join(" · ") : "—";
+  const rawImpact = r.impactRatio ?? r.ImpactRatio;
+  const impactNum = rawImpact != null ? Number(rawImpact) : null;
   const outcome =
-    row.impactRatio != null && row.impactRatio !== undefined ? String(row.impactRatio) : "—";
-  return { time: iso, type, subject: summary, policy, outcome };
+    impactNum != null && !Number.isNaN(impactNum) ? impactNum.toFixed(2) : "—";
+  const compliance = inferComplianceState(summary, impactNum);
+  const logId = r.logId ?? r.LogId;
+  return {
+    logId,
+    time: iso,
+    type,
+    subject: summary,
+    policy,
+    outcome,
+    impactRatio: Number.isNaN(impactNum) ? null : impactNum,
+    userId: uid,
+    reviewerId: revId,
+    factorId: facId,
+    compliance,
+  };
 }
 
 async function loadAuditLogs() {
   try {
     const raw = await fetchData("/api/audit-logs");
-    auditLogRows = Array.isArray(raw) ? raw.map(mapApiAuditRow) : [];
+    if (!Array.isArray(raw)) {
+      auditLogRows = [];
+    } else {
+      auditLogRows = raw
+        .map((row) => {
+          try {
+            return mapApiAuditRow(row);
+          } catch (err) {
+            console.warn("audit row skipped:", err);
+            return null;
+          }
+        })
+        .filter(Boolean);
+    }
   } catch (e) {
     console.error("audit logs:", e);
     auditLogRows = [];
@@ -322,8 +365,12 @@ async function loadDashboardMetrics(email) {
 
     setMetricText("metricAudAudit", m.auditLogs24h);
     setMetricText("metricAudFlags", m.pendingTransparency);
-    setMetricText("metricAudImpact", "—");
-    setMetricText("metricAudDrift", "—");
+    setMetricText("metricAudImpact", m.algorithmsCount);
+    setMetricText("metricAudDrift", m.scoringCriteriaCount);
+
+    setMetricText("metricDashUsers", m.usersCount);
+    setMetricText("metricDashUdf", m.userDecisionFactorLinks);
+    setMetricText("metricDashSeekerRoles", m.seekerRoleCount);
 
     const ul = el("dashEscalationsList");
     if (ul && Array.isArray(m.recentAuditSummaries)) {
@@ -599,7 +646,7 @@ async function loadTransparencyFeed(email) {
       li.className = "text-secondary small";
       li.textContent = "No transparency portal requests on file.";
       ul.appendChild(li);
-      transparencyLoaded = true;
+      transparencyFeedLoaded = true;
       return;
     }
     for (const r of rows) {
@@ -608,7 +655,7 @@ async function loadTransparencyFeed(email) {
       li.innerHTML = `<strong>Request #${r.requestId}</strong> — ${escapeHtml(r.requestStatus || "—")} <span class="text-secondary">· ${escapeHtml(r.detail || "")}</span>`;
       ul.appendChild(li);
     }
-    transparencyLoaded = true;
+    transparencyFeedLoaded = true;
   } catch (e) {
     console.error("transparency feed:", e);
     ul.replaceChildren();
@@ -647,11 +694,88 @@ async function loadDecisionsRankPreview() {
   }
 }
 
+function renderFairnessCohortTable(rows, parityThreshold) {
+  const tbl = el("fairnessCohortTableBody");
+  if (!tbl) return;
+  tbl.replaceChildren();
+  if (!rows.length) {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td colspan="4" class="text-secondary small">No cohort rows to display.</td>';
+    tbl.appendChild(tr);
+    return;
+  }
+  for (const r of rows) {
+    const rate = Number(r.selectionRate ?? 0);
+    const tr = document.createElement("tr");
+    if (rate < parityThreshold) tr.classList.add("table-warning");
+    tr.innerHTML = `
+      <td>${escapeHtml(String(r.group ?? "—"))}</td>
+      <td class="text-end font-monospace">${escapeHtml(String(r.selectedCount ?? 0))}</td>
+      <td class="text-end font-monospace">${escapeHtml(String(r.totalCount ?? 0))}</td>
+      <td class="text-end font-monospace">${rate.toFixed(4)}</td>`;
+    tbl.appendChild(tr);
+  }
+}
+
+/** Normalize GET /api/fairness/summary (camelCase default; tolerate PascalCase). */
+function pickFairnessSummary(data) {
+  if (!data || typeof data !== "object") {
+    return {
+      cohortParity: [],
+      demographicBreakdown: { byDepartment: [], byJobTitle: [] },
+      demographicMaxGap: null,
+      flaggedGroups: 0,
+      minSelectionRate: 0,
+    };
+  }
+  const cohort = data.cohortParity ?? data.CohortParity ?? [];
+  const demo = data.demographicBreakdown ?? data.DemographicBreakdown ?? {};
+  const byDept = demo.byDepartment ?? demo.ByDepartment ?? [];
+  const byJob = demo.byJobTitle ?? demo.ByJobTitle ?? [];
+  return {
+    cohortParity: Array.isArray(cohort) ? cohort : [],
+    demographicBreakdown: {
+      byDepartment: Array.isArray(byDept) ? byDept : [],
+      byJobTitle: Array.isArray(byJob) ? byJob : [],
+    },
+    demographicMaxGap: data.demographicMaxGap ?? data.DemographicMaxGap ?? null,
+    flaggedGroups: data.flaggedGroups ?? data.FlaggedGroups ?? 0,
+    minSelectionRate: data.minSelectionRate ?? data.MinSelectionRate ?? 0,
+  };
+}
+
+function renderFairnessDemoTable(bodyId, rows, parityThreshold) {
+  const tbl = el(bodyId);
+  if (!tbl) return;
+  tbl.replaceChildren();
+  if (!Array.isArray(rows) || !rows.length) {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td colspan="4" class="text-secondary small">No rows (missing department/title data or no impact ratios).</td>';
+    tbl.appendChild(tr);
+    return;
+  }
+  for (const r of rows) {
+    const rate = Number(r.selectionRate ?? 0);
+    const tr = document.createElement("tr");
+    if (rate < parityThreshold) tr.classList.add("table-warning");
+    tr.innerHTML = `
+      <td class="text-break">${escapeHtml(String(r.group ?? "—"))}</td>
+      <td class="text-end font-monospace">${escapeHtml(String(r.selectedCount ?? 0))}</td>
+      <td class="text-end font-monospace">${escapeHtml(String(r.totalCount ?? 0))}</td>
+      <td class="text-end font-monospace">${rate.toFixed(4)}</td>`;
+    tbl.appendChild(tr);
+  }
+}
+
 async function loadFairnessConsole() {
   const body = el("fairnessParityBody");
   const note = el("fairnessSummaryNote");
   const badgeWrap = el("fairnessBiasBadgeWrap");
   if (!body) return;
+  const isAdminFairness = getSession()?.role === "admin";
+  const parityThreshold = 0.8;
   const setBadgeHidden = (hidden) => {
     if (!badgeWrap) return;
     badgeWrap.classList.toggle("tw-hidden", hidden);
@@ -659,19 +783,41 @@ async function loadFairnessConsole() {
   };
   try {
     const data = await fetchData("/api/fairness/summary");
-    const rows = Array.isArray(data?.cohortParity) ? data.cohortParity : [];
+    const fs = pickFairnessSummary(data);
+    const rows = fs.cohortParity;
     if (!rows.length) {
       body.innerHTML = twFairnessEmptyMessage(
         "No fairness ratios available yet. Generate decision activity first."
       );
+      renderFairnessCohortTable([], parityThreshold);
+      if (isAdminFairness) {
+        renderFairnessDemoTable("fairnessDeptTableBody", [], parityThreshold);
+        renderFairnessDemoTable("fairnessJobTableBody", [], parityThreshold);
+        const gapEl = el("fairnessDemographicGapNote");
+        if (gapEl) gapEl.textContent = "";
+      }
       if (note) note.textContent = "No fairness baseline available yet.";
       setBadgeHidden(true);
-      fairnessLoaded = true;
       return;
     }
-    const parityThreshold = 0.8;
     body.innerHTML = rows.map((r) => twFairnessCohortCard(r, parityThreshold)).join("");
+    renderFairnessCohortTable(rows, parityThreshold);
+    if (isAdminFairness) {
+      const demo = fs.demographicBreakdown;
+      renderFairnessDemoTable("fairnessDeptTableBody", demo.byDepartment, parityThreshold);
+      renderFairnessDemoTable("fairnessJobTableBody", demo.byJobTitle, parityThreshold);
+      const gapNote = el("fairnessDemographicGapNote");
+      if (gapNote) {
+        const g = fs.demographicMaxGap;
+        if (g != null && Number.isFinite(Number(g))) {
+          gapNote.innerHTML = `<strong>Spread between buckets</strong> (dept + title): max − min selection rate = <strong>${Number(g).toFixed(4)}</strong> — larger gaps warrant investigation.`;
+        } else {
+          gapNote.textContent = "";
+        }
+      }
+    }
     const flagged = rows.filter((r) => Number(r.selectionRate ?? 0) < parityThreshold).length;
+    const fg = Number(fs.flaggedGroups ?? 0);
     if (badgeWrap) {
       setBadgeHidden(false);
       if (flagged > 0) {
@@ -681,16 +827,29 @@ async function loadFairnessConsole() {
       }
     }
     if (note) {
-      const minRate = Number(data?.minSelectionRate ?? 0);
+      const minRate = Number(fs.minSelectionRate ?? 0);
       note.textContent =
         flagged > 0
-          ? `${flagged} cohort(s) under ${parityThreshold.toFixed(2)} selection-rate parity. Lowest rate ${minRate.toFixed(2)}.`
-          : `All cohorts at or above ${parityThreshold.toFixed(2)} rate. Lowest rate ${minRate.toFixed(2)}.`;
+          ? `${flagged} cohort(s) under ${parityThreshold.toFixed(2)} selection-rate parity (${fg} flagged in API summary). Lowest cohort rate ${minRate.toFixed(4)}.`
+          : `All cohorts at or above ${parityThreshold.toFixed(2)} rate. Lowest cohort rate ${minRate.toFixed(4)}.`;
     }
-    fairnessLoaded = true;
   } catch (e) {
     console.error("fairness summary:", e);
     body.innerHTML = twFairnessEmptyMessage("Could not load fairness summary.");
+    const tbl = el("fairnessCohortTableBody");
+    if (tbl) {
+      tbl.replaceChildren();
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td colspan="4" class="text-secondary small">Could not load cohort table.</td>';
+      tbl.appendChild(tr);
+    }
+    if (isAdminFairness) {
+      renderFairnessDemoTable("fairnessDeptTableBody", [], 0.8);
+      renderFairnessDemoTable("fairnessJobTableBody", [], 0.8);
+      const gapEl = el("fairnessDemographicGapNote");
+      if (gapEl) gapEl.textContent = "";
+    }
     if (note) note.textContent = "Could not load fairness summary.";
     setBadgeHidden(true);
   }
@@ -732,19 +891,11 @@ function initLazyDataTabs() {
       ) {
         void loadDecisionsRankPreview();
       }
-    });
-  }
-  const transpTab = el("tab-transparency");
-  if (transpTab && transpTab.dataset.lazyBound !== "1") {
-    transpTab.dataset.lazyBound = "1";
-    transpTab.addEventListener("shown.bs.tab", () => {
-      const s = getSession();
-      if (s?.role === "seeker" && !transparencyLoaded) void loadTransparencyFeed(s.email);
       if (
-        (s?.role === "recruiter" || s?.role === "admin") &&
-        !explainabilityRecruiterLoaded
+        (s.role === "recruiter" || s.role === "admin" || s.role === "auditor") &&
+        !decisionsContextLoaded
       ) {
-        void loadExplainabilityRecruiterContent();
+        void loadDecisionsContextPanels();
       }
     });
   }
@@ -753,17 +904,14 @@ function initLazyDataTabs() {
     fairnessTab.dataset.lazyBound = "1";
     fairnessTab.addEventListener("shown.bs.tab", () => {
       const s = getSession();
-      if (
-        (s?.role === "recruiter" || s?.role === "auditor" || s?.role === "admin") &&
-        !fairnessLoaded
-      ) {
+      if (s?.role === "recruiter" || s?.role === "auditor" || s?.role === "admin") {
         void loadFairnessConsole();
       }
     });
   }
 }
 
-async function loadExplainabilityRecruiterContent() {
+async function loadDecisionsContextPanels() {
   const algoBody = el("algorithmsLibraryBody");
   const policyBody = el("policyGuideTableBody");
   const modelCmpBody = el("modelComparisonBody");
@@ -810,9 +958,9 @@ async function loadExplainabilityRecruiterContent() {
       }
     }
 
-    explainabilityRecruiterLoaded = true;
+    decisionsContextLoaded = true;
   } catch (e) {
-    console.error("explainability (recruiter):", e);
+    console.error("decisions context panels:", e);
     algoBody.innerHTML = twFairnessEmptyMessage("Could not load algorithms.");
     policyBody.innerHTML = twFairnessEmptyMessage("Could not load policy rules.");
     if (modelCmpBody) {
@@ -906,30 +1054,117 @@ function updatePageSubtitle() {
   sub.textContent = `Today · ${d}`;
 }
 
+function readAuditFilterUi() {
+  return {
+    search: (el("auditSearchInput")?.value || "").trim().toLowerCase(),
+    compliance: el("auditFilterCompliance")?.value || "all",
+    eventType: el("auditFilterEventType")?.value || "all",
+    impact: el("auditFilterImpact")?.value || "all",
+    userId: (el("auditFilterUserId")?.value || "").trim(),
+    reviewerId: (el("auditFilterReviewerId")?.value || "").trim(),
+    factorId: (el("auditFilterFactorId")?.value || "").trim(),
+  };
+}
+
+function matchesEventTypeFilter(e, eventType) {
+  if (eventType === "all") return true;
+  if (eventType === "match") return e.type === "job_match";
+  if (eventType === "rank") return e.type === "candidate_rank" || e.type === "audit_view";
+  if (eventType === "review") return e.type === "human_review";
+  return true;
+}
+
+function matchesImpactFilter(e, impact) {
+  if (impact === "all") return true;
+  const r = e.impactRatio;
+  if (impact === "none") return r == null || Number.isNaN(r);
+  if (impact === "risk_low") return r != null && !Number.isNaN(r) && r < 0.7;
+  if (impact === "ok") return r != null && !Number.isNaN(r) && r >= 0.7;
+  return true;
+}
+
+function idTokenMatches(rowVal, filterText) {
+  if (!filterText) return true;
+  if (rowVal == null || rowVal === "") return false;
+  return String(rowVal).includes(filterText);
+}
+
 function renderAuditTable() {
   const body = el("auditTableBody");
   const countLabel = el("auditCount");
   if (!body || !countLabel) return;
 
+  const f = readAuditFilterUi();
+
   const rows = auditLogRows.filter((e) => {
-    if (auditFilter === "all") return true;
-    if (auditFilter === "match") return e.type === "job_match";
-    if (auditFilter === "rank") return e.type === "candidate_rank" || e.type === "audit_view";
-    if (auditFilter === "review") return e.type === "human_review";
+    if (!matchesEventTypeFilter(e, f.eventType)) return false;
+    if (!matchesImpactFilter(e, f.impact)) return false;
+
+    if (f.compliance === "non_compliant" && e.compliance !== "non_compliant") return false;
+    if (f.compliance === "compliant" && e.compliance !== "compliant") return false;
+    if (f.compliance === "unsure" && e.compliance !== "unsure") return false;
+
+    if (!idTokenMatches(e.userId, f.userId)) return false;
+    if (!idTokenMatches(e.reviewerId, f.reviewerId)) return false;
+    if (!idTokenMatches(e.factorId, f.factorId)) return false;
+
+    if (f.search) {
+      const hay = [
+        e.time,
+        e.subject,
+        e.policy,
+        e.outcome,
+        e.logId != null ? String(e.logId) : "",
+        formatType(e.type),
+        e.compliance,
+      ]
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(f.search)) return false;
+    }
+
     return true;
   });
 
-  countLabel.textContent = `${rows.length} events`;
+  const total = auditLogRows.length;
+  countLabel.textContent =
+    rows.length === total || total === 0
+      ? `${rows.length} events`
+      : `${rows.length} shown (${total} loaded)`;
 
   body.replaceChildren();
+
+  if (rows.length === 0 && total > 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" class="text-secondary small">
+      No rows match your filters, but <strong>${total}</strong> event(s) are loaded.
+      Click <strong>Clear filters</strong> or set Impact to <strong>All</strong> (many rows have no impact ratio).
+    </td>`;
+    body.appendChild(tr);
+    return;
+  }
+
+  if (rows.length === 0 && total === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" class="text-secondary small">
+      No audit events returned. If the API is unreachable, check the browser console and that the server is running.
+    </td>`;
+    body.appendChild(tr);
+    return;
+  }
+
   for (const e of rows) {
     const tr = document.createElement("tr");
+    if (e.compliance === "non_compliant") {
+      tr.classList.add("table-danger");
+    }
     tr.innerHTML = `
       <td><time datetime="${escapeHtml(e.time)}">${escapeHtml(e.time)}</time></td>
+      <td>${complianceBadgeHtml(e.compliance)}</td>
       <td>${formatType(e.type)}</td>
       <td>${escapeHtml(e.subject)}</td>
       <td>${escapeHtml(e.policy)}</td>
-      <td>${escapeHtml(e.outcome)}</td>
+      <td class="text-end font-monospace">${escapeHtml(e.outcome)}</td>
     `;
     body.appendChild(tr);
   }
@@ -1992,19 +2227,7 @@ function applyRoleAccess(role) {
     }
   }
 
-  updateRoleBanner(role);
   applyRolePreview(role);
-}
-
-function updateRoleBanner(role) {
-  const banner = el("roleAccessBanner");
-  if (!banner) return;
-  const line = ROLE_BANNER[role] || "";
-  banner.innerHTML =
-    '<span class="d-block">' +
-    escapeHtml(line) +
-    "</span>" +
-    '<span class="d-block mt-1 small text-muted">Sign-in is validated against the database; enforce RBAC on the API in production.</span>';
 }
 
 function applyRolePreview(role) {
@@ -2018,20 +2241,40 @@ function applyRolePreview(role) {
 }
 
 function initAuditFilters() {
-  const map = [
-    ["btnFilterAll", "all"],
-    ["btnFilterMatch", "match"],
-    ["btnFilterRank", "rank"],
-    ["btnFilterReview", "review"],
+  const controls = [
+    "auditSearchInput",
+    "auditFilterCompliance",
+    "auditFilterEventType",
+    "auditFilterImpact",
+    "auditFilterUserId",
+    "auditFilterReviewerId",
+    "auditFilterFactorId",
   ];
-  for (const [id, key] of map) {
-    const b = el(id);
-    if (b) {
-      b.addEventListener("click", () => {
-        auditFilter = key;
-        renderAuditTable();
-      });
-    }
+  for (const id of controls) {
+    const node = el(id);
+    if (!node) continue;
+    node.addEventListener("input", () => renderAuditTable());
+    node.addEventListener("change", () => renderAuditTable());
+  }
+  const clear = el("btnAuditClearFilters");
+  if (clear) {
+    clear.addEventListener("click", () => {
+      const s = el("auditSearchInput");
+      if (s) s.value = "";
+      const c = el("auditFilterCompliance");
+      if (c) c.value = "all";
+      const et = el("auditFilterEventType");
+      if (et) et.value = "all";
+      const im = el("auditFilterImpact");
+      if (im) im.value = "all";
+      const u = el("auditFilterUserId");
+      if (u) u.value = "";
+      const r = el("auditFilterReviewerId");
+      if (r) r.value = "";
+      const f = el("auditFilterFactorId");
+      if (f) f.value = "";
+      renderAuditTable();
+    });
   }
 }
 
@@ -2157,6 +2400,7 @@ function bootApp(session) {
   updatePageSubtitle();
   void loadDashboardMetrics(session.email);
   attachAppListenersOnce();
+  if (session.role === "seeker") void loadTransparencyFeed(session.email);
   if (session.role === "recruiter" || session.role === "admin") {
     loadRankedTalent();
     loadReviewRequests();
